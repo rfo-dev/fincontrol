@@ -1,0 +1,304 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --fc-ink: #0b1f1c;
+  --fc-ink-soft: #14302b;
+  --fc-mint: #0f766e;
+  --fc-mist: #f3f6f4;
+  --fc-line: #d7e2dc;
+  --fc-income: #059669;
+  --fc-expense: #e11d48;
+  --fc-warn: #b45309;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+    color: var(--fc-ink);
+    background-color: var(--fc-mist);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  #root {
+    min-height: 100vh;
+  }
+
+  ::selection {
+    background-color: #ccfbf1;
+    color: var(--fc-ink);
+  }
+}
+
+@layer components {
+  .fc-page {
+    @apply px-4 py-5 sm:px-6 lg:px-8;
+    animation: fadeUp 0.45s ease-out both;
+  }
+
+  .fc-page-header {
+    @apply mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between;
+  }
+
+  .fc-title {
+    @apply font-display text-2xl font-bold tracking-tight sm:text-3xl;
+    color: var(--fc-ink);
+  }
+
+  .fc-subtitle {
+    @apply mt-1 text-sm;
+    color: rgb(11 31 28 / 0.55);
+  }
+
+  .fc-toolbar {
+    @apply flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center;
+  }
+
+  .fc-card {
+    @apply rounded-2xl border bg-white shadow-panel;
+    border-color: rgb(215 226 220 / 0.9);
+  }
+
+  .fc-stat {
+    @apply rounded-2xl border bg-white p-5 shadow-panel transition duration-300 hover:-translate-y-0.5 hover:shadow-lift;
+    border-color: rgb(215 226 220 / 0.9);
+  }
+
+  .fc-input {
+    @apply w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm outline-none transition;
+    border-color: var(--fc-line);
+    color: var(--fc-ink);
+  }
+
+  .fc-input::placeholder {
+    color: rgb(11 31 28 / 0.35);
+  }
+
+  .fc-input:focus {
+    border-color: var(--fc-mint);
+    box-shadow: 0 0 0 2px rgb(15 118 110 / 0.2);
+  }
+
+  .fc-select {
+    @apply w-full appearance-none rounded-xl border bg-white px-3.5 py-2.5 pr-8 text-sm outline-none transition;
+    border-color: var(--fc-line);
+    color: var(--fc-ink);
+  }
+
+  .fc-select:focus {
+    border-color: var(--fc-mint);
+    box-shadow: 0 0 0 2px rgb(15 118 110 / 0.2);
+  }
+
+  .fc-label {
+    @apply mb-1.5 block text-sm font-medium;
+    color: rgb(11 31 28 / 0.7);
+  }
+
+  .fc-btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .fc-btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50;
+    background-color: var(--fc-mint);
+  }
+
+  .fc-btn-primary:hover {
+    background-color: var(--fc-ink);
+  }
+
+  .fc-btn-income {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50;
+    background-color: var(--fc-income);
+  }
+
+  .fc-btn-income:hover {
+    background-color: #047857;
+  }
+
+  .fc-btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border bg-white px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
+    border-color: var(--fc-line);
+    color: var(--fc-ink);
+  }
+
+  .fc-btn-secondary:hover {
+    background-color: var(--fc-mist);
+  }
+
+  .fc-btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
+    color: rgb(11 31 28 / 0.7);
+  }
+
+  .fc-btn-ghost:hover {
+    background-color: var(--fc-mist);
+    color: var(--fc-ink);
+  }
+
+  .fc-chip {
+    @apply inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition;
+  }
+
+  .fc-chip-active {
+    @apply inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium text-white transition;
+    border-color: var(--fc-ink);
+    background-color: var(--fc-ink);
+  }
+
+  .fc-chip-idle {
+    @apply inline-flex items-center gap-1.5 rounded-lg border bg-white px-3 py-2 text-sm font-medium transition;
+    border-color: var(--fc-line);
+    color: rgb(11 31 28 / 0.7);
+  }
+
+  .fc-chip-idle:hover {
+    background-color: var(--fc-mist);
+  }
+
+  .fc-check {
+    @apply flex items-center gap-2 rounded-xl border bg-white px-3 py-2 text-sm;
+    border-color: var(--fc-line);
+    color: rgb(11 31 28 / 0.8);
+  }
+
+  .fc-switch-field {
+    @apply inline-flex items-center gap-2.5 rounded-xl border bg-white px-3 py-2;
+    border-color: var(--fc-line);
+  }
+
+  .fc-switch {
+    @apply relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition;
+    background-color: #cbd5e1;
+  }
+
+  .fc-switch-on {
+    background-color: var(--fc-mint);
+  }
+
+  .fc-switch-disabled {
+    @apply cursor-not-allowed opacity-50;
+  }
+
+  .fc-switch-thumb {
+    @apply absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition;
+  }
+
+  .fc-switch-on .fc-switch-thumb {
+    transform: translateX(1.25rem);
+  }
+
+  .fc-badge {
+    @apply inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-xs font-semibold;
+  }
+
+  .fc-badge-success {
+    @apply inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-xs font-semibold;
+    background-color: #d1fae5;
+    color: var(--fc-income);
+  }
+
+  .fc-badge-danger {
+    @apply inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-xs font-semibold;
+    background-color: #ffe4e6;
+    color: var(--fc-expense);
+  }
+
+  .fc-badge-info {
+    @apply inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-xs font-semibold;
+    background-color: #ccfbf1;
+    color: var(--fc-mint);
+  }
+
+  .fc-badge-warn {
+    @apply inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-xs font-semibold;
+    background-color: #fef3c7;
+    color: var(--fc-warn);
+  }
+
+  .fc-icon-btn {
+    @apply inline-flex h-9 w-9 items-center justify-center rounded-xl transition;
+  }
+
+  .fc-table-wrap {
+    @apply overflow-x-auto;
+  }
+
+  .fc-table {
+    @apply min-w-full;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .fc-table thead {
+    background-color: rgb(243 246 244 / 0.8);
+  }
+
+  .fc-table th {
+    @apply px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider sm:px-6;
+    color: rgb(11 31 28 / 0.45);
+    border-bottom: 1px solid var(--fc-line);
+  }
+
+  .fc-table td {
+    @apply px-4 py-3.5 text-sm sm:px-6;
+    color: rgb(11 31 28 / 0.8);
+    border-bottom: 1px solid rgb(215 226 220 / 0.7);
+  }
+
+  .fc-table tbody tr {
+    @apply transition;
+  }
+
+  .fc-table tbody tr:hover {
+    background-color: rgb(243 246 244 / 0.6);
+  }
+
+  .fc-empty {
+    @apply flex flex-col items-center justify-center rounded-2xl border border-dashed px-6 py-14 text-center;
+    border-color: var(--fc-line);
+    background-color: rgb(255 255 255 / 0.7);
+  }
+
+  .fc-form-panel {
+    @apply mb-6 rounded-2xl border bg-white p-5 shadow-panel sm:p-6;
+    border-color: rgb(215 226 220 / 0.9);
+  }
+
+  .fc-mobile-list {
+    @apply space-y-3 md:hidden;
+  }
+
+  .fc-desktop-table {
+    @apply hidden md:block;
+  }
+}
+
+@keyframes fadeUp {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes softPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}

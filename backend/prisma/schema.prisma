@@ -1,0 +1,154 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                   String   @id @default(uuid()) @db.Uuid
+  email                String   @unique
+  passwordHash         String   @map("password_hash")
+  name                 String?
+  role                 String   @default("user")
+  isActive             Boolean  @default(true) @map("is_active")
+  monthCarryoverPrefs  Json     @default("{}") @map("month_carryover_prefs")
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  categories  Category[]
+  incomes     Income[]
+  expenses    Expense[]
+  creditCards CreditCard[]
+  aiMessages  AiChatMessage[]
+
+  @@map("users")
+}
+
+model Category {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  type      String?
+  userId    String?  @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  user     User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  incomes  Income[]
+  expenses Expense[]
+
+  @@index([userId])
+  @@map("categories")
+}
+
+model Income {
+  id                String   @id @default(uuid()) @db.Uuid
+  description       String
+  amount            Decimal  @db.Decimal(14, 2)
+  date              DateTime @db.Date
+  categoryId        String?  @map("category_id") @db.Uuid
+  userId            String?  @map("user_id") @db.Uuid
+  isReceived        Boolean  @default(false) @map("is_received")
+  isRecurring       Boolean  @default(false) @map("is_recurring")
+  recurringInterval String?  @map("recurring_interval")
+  recurringCount    Int?     @map("recurring_count")
+  recurringIndex    Int?     @map("recurring_index")
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  user     User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("incomes")
+}
+
+model Expense {
+  id                String   @id @default(uuid()) @db.Uuid
+  description       String
+  amount            Decimal  @db.Decimal(14, 2)
+  date              DateTime @db.Date
+  categoryId        String?  @map("category_id") @db.Uuid
+  recurringInterval String?  @map("recurring_interval")
+  recurringCount    Int?     @map("recurring_count")
+  recurringIndex    Int?     @map("recurring_index")
+  creditCardId      String?  @map("credit_card_id") @db.Uuid
+  isPaid            Boolean  @default(false) @map("is_paid")
+  isRecurring       Boolean  @default(false) @map("is_recurring")
+  userId            String?  @map("user_id") @db.Uuid
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  category   Category?   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  creditCard CreditCard? @relation(fields: [creditCardId], references: [id], onDelete: SetNull)
+  user       User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([creditCardId])
+  @@map("expenses")
+}
+
+model CreditCard {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  lastFour    String?  @map("last_four") @db.VarChar(4)
+  dueDay      Int      @map("due_day")
+  closingDay  Int?     @map("closing_day")
+  creditLimit Decimal? @map("credit_limit") @db.Decimal(14, 2)
+  color       String?
+  userId      String?  @map("user_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  user     User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expenses Expense[]
+
+  @@index([userId])
+  @@map("credit_cards")
+}
+
+model AiAgent {
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String
+  provider     String
+  model        String
+  apiKeyEnc    String   @map("api_key_enc")
+  systemPrompt String   @map("system_prompt") @db.Text
+  isEnabled    Boolean  @default(false) @map("is_enabled")
+  audienceMode String   @default("all") @map("audience_mode")
+  enabledRoles Json     @default("[]") @map("enabled_roles")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("ai_agents")
+}
+
+model AiChatMessage {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  role           String
+  content        String   @db.Text
+  attachmentName String?  @map("attachment_name")
+  attachmentMime String?  @map("attachment_mime")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("ai_chat_messages")
+}
+
+model WhatsAppConnection {
+  id              String    @id @default(uuid()) @db.Uuid
+  label           String    @default("WhatsApp")
+  wabaId          String?   @map("waba_id")
+  phoneNumberId   String?   @map("phone_number_id")
+  displayPhone    String?   @map("display_phone")
+  businessId      String?   @map("business_id")
+  accessTokenEnc  String    @map("access_token_enc") @db.Text
+  tokenExpiresAt  DateTime? @map("token_expires_at") @db.Timestamptz
+  isActive        Boolean   @default(true) @map("is_active")
+  rawSession      Json?     @map("raw_session")
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("whatsapp_connections")
+}

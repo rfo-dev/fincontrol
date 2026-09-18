@@ -1,0 +1,54 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: fincontrol-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-fincontrol}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fincontrol}
+      POSTGRES_DB: ${POSTGRES_DB:-fincontrol}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - fincontrol
+
+  api:
+    image: ${API_IMAGE:-ghcr.io/rfo-dev/fincontrol-api:latest}
+    container_name: fincontrol-api
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-fincontrol}:${POSTGRES_PASSWORD:-fincontrol}@db:5432/${POSTGRES_DB:-fincontrol}?schema=public
+      PORT: 3001
+      CORS_ORIGIN: ${CORS_ORIGIN:-https://financial.cubotechbr.com.br}
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL:-https://financial.cubotechbr.com.br}
+      API_PUBLIC_URL: ${API_PUBLIC_URL:-https://financial.cubotechbr.com.br}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - fincontrol
+
+  web:
+    image: ${WEB_IMAGE:-ghcr.io/rfo-dev/fincontrol-web:latest}
+    container_name: fincontrol-web
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-80}:80"
+    depends_on:
+      - api
+    networks:
+      - fincontrol
+
+volumes:
+  pgdata:
+
+networks:
+  fincontrol:
+    driver: bridge

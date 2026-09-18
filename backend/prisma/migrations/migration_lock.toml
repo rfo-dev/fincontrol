@@ -1,0 +1,4 @@
+# This file is used by Prisma Migrate to track migration history.
+# Learn more: https://pris.ly/d/migrate-history
+
+provider = "postgresql"

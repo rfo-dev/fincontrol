@@ -1,0 +1,128 @@
+================================================================================
+              ESTRUTURA DO BANCO DE DADOS DA APLICACAO
+================================================================================
+
+Este documento descreve todas as tabelas, campos, tipos e configuracoes
+do banco PostgreSQL utilizado pela aplicacao (Prisma + API Express).
+
+O isolamento por usuario e feito na API (JWT + filtro user_id), nao por RLS.
+
+================================================================================
+TABELA: users
+================================================================================
+Descricao: Usuarios da aplicacao (autenticacao propria com senha hash).
+
+  Campo          | Tipo                      | Nulo | Padrao
+  ---------------|---------------------------|------|--------
+  id             | uuid                      | Nao  | uuid (app)
+  email          | text                      | Nao  | - (unique)
+  password_hash  | text                      | Nao  | -
+  name           | text                      | Sim  | -
+  role           | text                      | Nao  | 'user'
+  is_active      | boolean                   | Nao  | true
+  created_at     | timestamptz               | Nao  | now()
+  updated_at     | timestamptz               | Nao  | now() / update
+
+  Restricoes:
+    - role: valores esperados -> 'admin', 'user'
+
+  Chave primaria: id
+
+================================================================================
+TABELA: categories
+================================================================================
+Descricao: Categorias usadas para classificar receitas e despesas.
+
+  Campo      | Tipo         | Nulo | Padrao
+  -----------|--------------|------|--------
+  id         | uuid         | Nao  | uuid (app)
+  name       | text         | Nao  | -
+  type       | text         | Sim  | - ('income' | 'expense')
+  user_id    | uuid         | Sim  | -
+  created_at | timestamptz  | Nao  | now()
+
+  Chave primaria: id
+  FK: user_id -> users.id (ON DELETE CASCADE)
+
+  No cadastro de usuario sao criadas 12 categorias de despesa e 8 de receita.
+
+================================================================================
+TABELA: incomes
+================================================================================
+Descricao: Registros de receitas do usuario.
+
+  Campo               | Tipo         | Nulo | Padrao
+  --------------------|--------------|------|--------
+  id                  | uuid         | Nao  | uuid (app)
+  description         | text         | Nao  | -
+  amount              | decimal(14,2)| Nao  | -
+  date                | date         | Nao  | -
+  category_id         | uuid         | Sim  | -
+  user_id             | uuid         | Sim  | -
+  is_received         | boolean      | Nao  | false
+  is_recurring        | boolean      | Nao  | false
+  recurring_interval  | text         | Sim  | - (weekly|monthly|yearly)
+  recurring_count     | integer      | Sim  | -
+  created_at          | timestamptz  | Nao  | now()
+
+  Chave primaria: id
+  FKs:
+    - user_id -> users.id (ON DELETE CASCADE)
+    - category_id -> categories.id (ON DELETE SET NULL)
+
+================================================================================
+TABELA: expenses
+================================================================================
+Descricao: Registros de despesas do usuario.
+
+  Campo               | Tipo         | Nulo | Padrao
+  --------------------|--------------|------|--------
+  id                  | uuid         | Nao  | uuid (app)
+  description         | text         | Nao  | -
+  amount              | decimal(14,2)| Nao  | -
+  date                | date         | Nao  | -
+  category_id         | uuid         | Sim  | -
+  recurring_interval  | text         | Sim  | - (weekly|monthly|yearly)
+  recurring_count     | integer      | Sim  | -
+  credit_card_id      | uuid         | Sim  | -
+  is_paid             | boolean      | Nao  | false
+  is_recurring        | boolean      | Nao  | false
+  user_id             | uuid         | Sim  | -
+  created_at          | timestamptz  | Nao  | now()
+
+  Chave primaria: id
+  FKs:
+    - user_id -> users.id (ON DELETE CASCADE)
+    - category_id -> categories.id (ON DELETE SET NULL)
+    - credit_card_id -> credit_cards.id (ON DELETE SET NULL)
+
+================================================================================
+TABELA: credit_cards
+================================================================================
+Descricao: Cartoes de credito cadastrados pelo usuario.
+
+  Campo         | Tipo         | Nulo | Padrao
+  --------------|--------------|------|--------
+  id            | uuid         | Nao  | uuid (app)
+  name          | text         | Nao  | -
+  due_day       | integer      | Nao  | - (1-31)
+  closing_day   | integer      | Sim  | - (1-31)
+  credit_limit  | decimal(14,2)| Sim  | -
+  color         | text         | Sim  | -
+  user_id       | uuid         | Sim  | -
+  created_at    | timestamptz  | Nao  | now()
+
+  Chave primaria: id
+  FK: user_id -> users.id (ON DELETE CASCADE)
+
+================================================================================
+RESUMO GERAL
+================================================================================
+
+Total de tabelas: 5
+
+  1. users          - usuarios da aplicacao
+  2. categories     - categorias de receitas e despesas
+  3. incomes        - registros de receitas
+  4. expenses       - registros de despesas
+  5. credit_cards   - cartoes de credito

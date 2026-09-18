@@ -1,0 +1,52 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: fincontrol-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: fincontrol
+      POSTGRES_PASSWORD: fincontrol
+      POSTGRES_DB: fincontrol
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fincontrol -d fincontrol"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: fincontrol-api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://fincontrol:fincontrol@db:5432/fincontrol?schema=public
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-in-production}
+      PORT: 3001
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173,http://localhost:80,http://localhost}
+    ports:
+      - "3001:3001"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    profiles: ["prod"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ""
+    container_name: fincontrol-web
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
