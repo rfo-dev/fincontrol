@@ -1,0 +1,64 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: fincontrol-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - fincontrol_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - internal
+
+  api:
+    image: ghcr.io/rfo-dev/fincontrol-api:latest
+    container_name: fincontrol-api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public
+      JWT_SECRET: ${JWT_SECRET}
+      AI_ENCRYPTION_KEY: ${AI_ENCRYPTION_KEY}
+      PORT: "3001"
+      CORS_ORIGIN: ${CORS_ORIGIN}
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL}
+      API_PUBLIC_URL: ${API_PUBLIC_URL}
+      META_APP_ID: ${META_APP_ID}
+      META_APP_SECRET: ${META_APP_SECRET}
+      META_EMBEDDED_SIGNUP_CONFIG_ID: ${META_EMBEDDED_SIGNUP_CONFIG_ID}
+      META_GRAPH_API_VERSION: ${META_GRAPH_API_VERSION}
+      WHATSAPP_WEBHOOK_VERIFY_TOKEN: ${WHATSAPP_WEBHOOK_VERIFY_TOKEN}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - internal
+
+  web:
+    image: ghcr.io/rfo-dev/fincontrol-web:latest
+    container_name: fincontrol-web
+    restart: unless-stopped
+    depends_on:
+      - api
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.fincontrol.rule=Host(`financial.cubotechbr.com.br`)
+      - traefik.http.routers.fincontrol.entrypoints=websecure
+      - traefik.http.routers.fincontrol.tls=true
+      - traefik.http.routers.fincontrol.tls.certresolver=letsencrypt
+      - traefik.http.services.fincontrol.loadbalancer.server.port=80
+    networks:
+      - internal
+
+volumes:
+  fincontrol_pgdata:
+
+networks:
+  internal:
+    driver: bridge
