@@ -7,6 +7,7 @@ import { CreditCard, Expense } from '../../types';
 import { calculateCreditCardDueDate } from '../../utils/creditCardDueDate';
 import RecurringEditScopeModal, { RecurringEditScope } from '../shared/RecurringEditScopeModal';
 import RecurringDeleteScopeModal, { RecurringDeleteScope } from '../shared/RecurringDeleteScopeModal';
+import { useTranslation } from '../../i18n/LanguageProvider';
 
 interface CreditCardExpensesListProps {
   creditCard: CreditCard;
@@ -20,6 +21,7 @@ const EXPENSE_CATEGORIES = [
 ];
 
 const CreditCardExpensesList: React.FC<CreditCardExpensesListProps> = ({ creditCard, onClose }) => {
+  const { t, months, translateCategory, dateLocale } = useTranslation();
   const { expenses, deleteExpense, updateExpense, addExpense, fetchExpenses } = useFinance();
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [isAddingNew, setIsAddingNew] = useState(false);
@@ -37,17 +39,14 @@ const CreditCardExpensesList: React.FC<CreditCardExpensesListProps> = ({ creditC
   const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Filter expenses for this credit card
   const allCardExpenses = expenses.filter(expense => expense.creditCardId === creditCard.id);
 
-  // Filter by selected year and month
   const cardExpenses = allCardExpenses.filter(expense => {
     const expenseDate = new Date(expense.date);
     return expenseDate.getFullYear() === selectedYear &&
            (expenseDate.getMonth() + 1) === selectedMonth;
   });
 
-  // Get available years and months from all card expenses
   const availableYears = [...new Set(allCardExpenses.map(expense =>
     new Date(expense.date).getFullYear()
   ))].sort((a, b) => b - a);
@@ -57,10 +56,7 @@ const CreditCardExpensesList: React.FC<CreditCardExpensesListProps> = ({ creditC
     .map(expense => new Date(expense.date).getMonth() + 1)
   )].sort((a, b) => a - b);
 
-  const monthNames = [
-    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
-  ];
+  const installmentTpl = t('formatters.installment');
 
   const handleEdit = (expense: Expense) => {
     setEditingExpense(expense);
@@ -78,7 +74,6 @@ const CreditCardExpensesList: React.FC<CreditCardExpensesListProps> = ({ creditC
     setEditingExpense(null);
     setIsAddingNew(true);
 
-    // Calculate the due date based on the credit card's closing and due day
     const dueDate = calculateCreditCardDueDate(creditCard);
 
     setFormData({
@@ -132,13 +127,13 @@ const CreditCardExpensesList: React.FC<CreditCardExpensesListProps> = ({ creditC
     setError('');
 
     if (!formData.description || !formData.amount) {
-      setError('Por favor, preencha todos os campos obrigatórios');
+      setError(t('common.requiredFields'));
       return;
     }
 
     const amount = parseFloat(formData.amount);
     if (isNaN(amount) || amount <= 0) {
-      setError('O valor deve ser um número positivo');
+      setError(t('common.positiveAmount'));
       return;
     }
 
@@ -154,7 +149,7 @@ const CreditCardExpensesList: React.FC<CreditCardExpensesListProps> = ({ creditC
       handleCancel();
     } catch (error: unknown) {
       console.error('Erro ao salvar despesa:', error);
-      const message = error instanceof Error ? error.message : 'Erro ao salvar a despesa. Por favor, tente novamente.';
+      const message = error instanceof Error ? error.message : t('expenses.saveError');
       setError(message);
     } finally {
       setIsSubmitting(false);
@@ -170,7 +165,7 @@ const CreditCardExpensesList: React.FC<CreditCardExpensesListProps> = ({ creditC
       handleCancel();
     } catch (error: unknown) {
       console.error('Erro ao atualizar despesa recorrente:', error);
-      const message = error instanceof Error ? error.message : 'Erro ao salvar a despesa. Por favor, tente novamente.';
+      const message = error instanceof Error ? error.message : t('expenses.saveError');
       setError(message);
     } finally {
       setIsSubmitting(false);
@@ -183,7 +178,7 @@ const CreditCardExpensesList: React.FC<CreditCardExpensesListProps> = ({ creditC
       return;
     }
 
-    if (window.confirm('Tem certeza que deseja excluir esta despesa?')) {
+    if (window.confirm(t('expenses.confirmDelete'))) {
       void confirmDeleteExpense(expense.id, 'single');
     }
   };
@@ -210,6 +205,9 @@ const CreditCardExpensesList: React.FC<CreditCardExpensesListProps> = ({ creditC
   };
 
   const totalAmount = cardExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+  const closingMeta = creditCard.closing_day
+    ? t('creditCards.closingMeta', { day: creditCard.closing_day })
+    : '';
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -249,40 +247,41 @@ const CreditCardExpensesList: React.FC<CreditCardExpensesListProps> = ({ creditC
         className="fc-card my-4 flex max-h-[min(90vh,900px)] w-full max-w-4xl flex-col overflow-hidden shadow-lift sm:my-6"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="sticky top-0 z-10 flex shrink-0 items-start justify-between gap-4 border-b border-mist-line bg-white p-5 sm:p-6">
           <div className="min-w-0">
             <h3 id="credit-card-expenses-title" className="font-display text-xl font-semibold text-ink">
-              Despesas do {creditCard.name}
+              {t('creditCards.expensesOfNamed', { name: creditCard.name })}
             </h3>
             <p className="mt-1 text-sm text-ink/55">
-              {monthNames[selectedMonth - 1]} {selectedYear}: {formatCurrency(totalAmount)} |
-              {creditCard.closing_day && ` Fechamento: Dia ${creditCard.closing_day} |`}
-              {' '}Vencimento: Dia {creditCard.due_day}
+              {t('creditCards.headerMeta', {
+                month: months[selectedMonth - 1],
+                year: selectedYear,
+                total: formatCurrency(totalAmount, dateLocale),
+                closing: closingMeta,
+                dueDay: creditCard.due_day,
+              })}
             </p>
           </div>
           <button
             onClick={onClose}
             className="fc-icon-btn shrink-0 text-ink/45 hover:bg-mist hover:text-ink"
-            aria-label="Fechar"
+            aria-label={t('common.close')}
           >
             <X size={20} />
           </button>
         </div>
 
-        {/* Content */}
         <div className="min-h-0 flex-1 overflow-y-auto p-5 sm:p-6">
-          {/* Date Filters */}
           <div className="mb-6 rounded-xl border border-mist-line bg-mist/50 p-4">
             <div className="mb-3 flex items-center gap-2">
               <Filter size={18} className="text-mint" />
-              <h4 className="font-medium text-ink">Filtros</h4>
+              <h4 className="font-medium text-ink">{t('creditCards.filters')}</h4>
             </div>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
                 <label className="fc-label">
-                  Ano
+                  {t('common.year')}
                 </label>
                 <select
                   className="fc-input"
@@ -290,7 +289,6 @@ const CreditCardExpensesList: React.FC<CreditCardExpensesListProps> = ({ creditC
                   onChange={(e) => {
                     const newYear = parseInt(e.target.value);
                     setSelectedYear(newYear);
-                    // Reset month to first available month of the new year
                     const monthsInYear = [...new Set(allCardExpenses
                       .filter(expense => new Date(expense.date).getFullYear() === newYear)
                       .map(expense => new Date(expense.date).getMonth() + 1)
@@ -308,7 +306,7 @@ const CreditCardExpensesList: React.FC<CreditCardExpensesListProps> = ({ creditC
 
               <div>
                 <label className="fc-label">
-                  Mês
+                  {t('common.month')}
                 </label>
                 <select
                   className="fc-input"
@@ -317,7 +315,7 @@ const CreditCardExpensesList: React.FC<CreditCardExpensesListProps> = ({ creditC
                 >
                   {availableMonths.map((month) => (
                     <option key={month} value={month}>
-                      {monthNames[month - 1]}
+                      {months[month - 1]}
                     </option>
                   ))}
                 </select>
@@ -325,7 +323,10 @@ const CreditCardExpensesList: React.FC<CreditCardExpensesListProps> = ({ creditC
             </div>
 
             <div className="mt-3 text-sm text-ink/50">
-              Mostrando {cardExpenses.length} despesa(s) de {allCardExpenses.length} total
+              {t('creditCards.showingCount', {
+                filtered: cardExpenses.length,
+                total: allCardExpenses.length,
+              })}
             </div>
           </div>
 
@@ -335,18 +336,17 @@ const CreditCardExpensesList: React.FC<CreditCardExpensesListProps> = ({ creditC
             </div>
           )}
 
-          {/* Add/Edit Form */}
           {(isAddingNew || editingExpense) && (
             <div className="fc-form-panel !mb-6">
               <h4 className="mb-4 font-medium text-ink">
-                {editingExpense ? 'Editar Despesa' : 'Nova Despesa'}
+                {editingExpense ? t('expenses.edit') : t('creditCards.newExpense')}
               </h4>
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div>
                     <label className="fc-label">
-                      Descrição*
+                      {t('common.descriptionRequired')}
                     </label>
                     <input
                       type="text"
@@ -359,11 +359,11 @@ const CreditCardExpensesList: React.FC<CreditCardExpensesListProps> = ({ creditC
 
                   <div>
                     <label className="fc-label">
-                      Valor*
+                      {t('common.amountRequired')}
                     </label>
                     <div className="relative">
                       <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                        <span className="text-sm text-ink/45">R$</span>
+                        <span className="text-sm text-ink/45">{t('common.currencySymbol')}</span>
                       </div>
                       <input
                         type="number"
@@ -379,7 +379,7 @@ const CreditCardExpensesList: React.FC<CreditCardExpensesListProps> = ({ creditC
 
                   <div>
                     <label className="fc-label">
-                      Categoria*
+                      {t('common.categoryRequired')}
                     </label>
                     <select
                       className="fc-input"
@@ -388,14 +388,14 @@ const CreditCardExpensesList: React.FC<CreditCardExpensesListProps> = ({ creditC
                       required
                     >
                       {EXPENSE_CATEGORIES.map((cat) => (
-                        <option key={cat} value={cat}>{cat}</option>
+                        <option key={cat} value={cat}>{translateCategory(cat)}</option>
                       ))}
                     </select>
                   </div>
 
                   <div>
                     <label className="fc-label">
-                      Data
+                      {t('common.date')}
                     </label>
                     <input
                       type="date"
@@ -404,9 +404,13 @@ const CreditCardExpensesList: React.FC<CreditCardExpensesListProps> = ({ creditC
                       onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                     />
                     <p className="mt-1 text-xs text-ink/45">
-                      Sugestão: {formatDate(calculateCreditCardDueDate(creditCard))}
+                      {t('creditCards.suggestion', {
+                        date: formatDate(calculateCreditCardDueDate(creditCard), dateLocale),
+                      })}
                       {creditCard.closing_day && (
-                        <span className="block text-xs">(baseado no fechamento dia {creditCard.closing_day})</span>
+                        <span className="block text-xs">
+                          {t('creditCards.basedOnClosing', { day: creditCard.closing_day })}
+                        </span>
                       )}
                     </p>
                   </div>
@@ -419,21 +423,24 @@ const CreditCardExpensesList: React.FC<CreditCardExpensesListProps> = ({ creditC
                     className="fc-btn-secondary"
                     disabled={isSubmitting}
                   >
-                    Cancelar
+                    {t('common.cancel')}
                   </button>
                   <button
                     type="submit"
                     className="fc-btn-primary"
                     disabled={isSubmitting}
                   >
-                    {isSubmitting ? 'Salvando...' : editingExpense ? 'Atualizar' : 'Adicionar'}
+                    {isSubmitting
+                      ? t('common.saving')
+                      : editingExpense
+                        ? t('common.update')
+                        : t('common.add')}
                   </button>
                 </div>
               </form>
             </div>
           )}
 
-          {/* Add New Button */}
           {!isAddingNew && !editingExpense && (
             <div className="mb-4">
               <button
@@ -441,29 +448,32 @@ const CreditCardExpensesList: React.FC<CreditCardExpensesListProps> = ({ creditC
                 className="fc-btn-primary"
               >
                 <Plus size={18} />
-                Nova Despesa
+                {t('creditCards.newExpense')}
               </button>
             </div>
           )}
 
-          {/* Expenses List */}
           {cardExpenses.length > 0 ? (
             <div className="fc-card overflow-hidden">
               <div className="border-b border-mist-line bg-mist/60 px-4 py-3 sm:px-6">
                 <h5 className="font-medium text-ink">
-                  {monthNames[selectedMonth - 1]} {selectedYear} - {cardExpenses.length} despesa(s)
+                  {t('creditCards.monthExpensesHeader', {
+                    month: months[selectedMonth - 1],
+                    year: selectedYear,
+                    count: cardExpenses.length,
+                  })}
                 </h5>
               </div>
               <div className="fc-table-wrap">
                 <table className="fc-table">
                   <thead>
                     <tr>
-                      <th>Descrição</th>
-                      <th>Categoria</th>
-                      <th>Data</th>
-                      <th>Valor</th>
-                      <th>Status</th>
-                      <th className="text-center">Ações</th>
+                      <th>{t('common.description')}</th>
+                      <th>{t('common.category')}</th>
+                      <th>{t('common.date')}</th>
+                      <th>{t('common.amount')}</th>
+                      <th>{t('common.status')}</th>
+                      <th className="text-center">{t('common.actions')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -475,26 +485,26 @@ const CreditCardExpensesList: React.FC<CreditCardExpensesListProps> = ({ creditC
                             {expense.isRecurring && (
                               <span className="fc-badge-info">
                                 <RefreshCw size={12} />
-                                {formatInstallment(expense.recurringIndex, expense.recurringCount) || 'Recorrente'}
+                                {formatInstallment(expense.recurringIndex, expense.recurringCount, installmentTpl) || t('common.recurring')}
                               </span>
                             )}
                           </div>
                         </td>
-                        <td>{expense.category}</td>
+                        <td>{translateCategory(expense.category)}</td>
                         <td>
                           <div className="flex items-center text-ink/70">
                             <Calendar size={14} className="mr-1 text-ink/35" />
-                            {formatDate(expense.date)}
+                            {formatDate(expense.date, dateLocale)}
                           </div>
                         </td>
                         <td>
                           <div className="font-medium text-expense">
-                            {formatCurrency(expense.amount)}
+                            {formatCurrency(expense.amount, dateLocale)}
                           </div>
                         </td>
                         <td>
                           <span className={expense.isPaid ? 'fc-badge-success' : 'fc-badge-danger'}>
-                            {expense.isPaid ? 'Paga' : 'Não Paga'}
+                            {expense.isPaid ? t('expenses.paid') : t('expenses.unpaid')}
                           </span>
                         </td>
                         <td>
@@ -503,7 +513,7 @@ const CreditCardExpensesList: React.FC<CreditCardExpensesListProps> = ({ creditC
                               <button
                                 onClick={() => handleEdit(expense)}
                                 className="fc-icon-btn bg-mint-soft text-mint hover:bg-mint hover:text-white"
-                                title="Editar despesa"
+                                title={t('expenses.editTitle')}
                               >
                                 <Pencil size={16} />
                               </button>
@@ -512,7 +522,7 @@ const CreditCardExpensesList: React.FC<CreditCardExpensesListProps> = ({ creditC
                               <button
                                 onClick={() => handleDelete(expense)}
                                 className="fc-icon-btn bg-expense-soft text-expense hover:bg-expense hover:text-white"
-                                title="Excluir despesa"
+                                title={t('expenses.deleteTitle')}
                               >
                                 <Trash size={16} />
                               </button>
@@ -528,11 +538,14 @@ const CreditCardExpensesList: React.FC<CreditCardExpensesListProps> = ({ creditC
           ) : (
             <div className="fc-empty !py-10">
               <p className="mb-4 text-ink/55">
-                Nenhuma despesa encontrada para {monthNames[selectedMonth - 1]} {selectedYear}
+                {t('creditCards.emptyForMonth', {
+                  month: months[selectedMonth - 1],
+                  year: selectedYear,
+                })}
               </p>
               {allCardExpenses.length > 0 && (
                 <p className="mb-4 text-sm text-ink/40">
-                  Este cartão possui {allCardExpenses.length} despesa(s) em outros períodos
+                  {t('creditCards.otherPeriods', { count: allCardExpenses.length })}
                 </p>
               )}
               <button
@@ -540,7 +553,7 @@ const CreditCardExpensesList: React.FC<CreditCardExpensesListProps> = ({ creditC
                 className="fc-btn-primary"
               >
                 <Plus size={18} />
-                Adicionar Despesa para {monthNames[selectedMonth - 1]}
+                {t('creditCards.addForMonth', { month: months[selectedMonth - 1] })}
               </button>
             </div>
           )}

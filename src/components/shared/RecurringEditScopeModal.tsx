@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { RefreshCw, X } from 'lucide-react';
+import { useTranslation } from '../../i18n/LanguageProvider';
 
 export type RecurringEditScope = 'single' | 'series';
 
@@ -17,11 +18,13 @@ const RecurringEditScopeModal: React.FC<RecurringEditScopeModalProps> = ({
   onSelect,
   onCancel,
 }) => {
-  const label = type === 'income' ? 'receita' : 'despesa';
+  const { t } = useTranslation();
+  const label =
+    type === 'income' ? t('recurring.incomeLabel') : t('recurring.expenseLabel');
   const seriesHint =
     type === 'income'
-      ? 'Apenas receitas ainda não recebidas da série serão atualizadas.'
-      : 'Apenas despesas ainda não pagas da série serão atualizadas.';
+      ? t('recurring.editSeriesHintIncome')
+      : t('recurring.editSeriesHintExpense');
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -59,10 +62,10 @@ const RecurringEditScopeModal: React.FC<RecurringEditScopeModalProps> = ({
             </div>
             <div>
               <h3 id="recurring-edit-scope-title" className="font-display text-lg font-semibold text-ink">
-                Editar {label} recorrente
+                {t('recurring.editTitle', { label })}
               </h3>
               <p className="mt-1 text-sm text-ink/55">
-                Deseja aplicar as alterações somente nesta {label} ou em todas as recorrentes?
+                {t('recurring.editBody', { label })}
               </p>
             </div>
           </div>
@@ -71,7 +74,7 @@ const RecurringEditScopeModal: React.FC<RecurringEditScopeModalProps> = ({
             className="fc-icon-btn shrink-0 text-ink/45 hover:bg-mist hover:text-ink"
             onClick={onCancel}
             disabled={isSubmitting}
-            aria-label="Fechar"
+            aria-label={t('common.close')}
           >
             <X size={18} />
           </button>
@@ -84,9 +87,9 @@ const RecurringEditScopeModal: React.FC<RecurringEditScopeModalProps> = ({
             onClick={() => onSelect('single')}
             disabled={isSubmitting}
           >
-            <div className="font-medium text-ink">Somente esta {label}</div>
+            <div className="font-medium text-ink">{t('recurring.onlyThis', { label })}</div>
             <div className="mt-1 text-sm text-ink/50">
-              Atualiza apenas o registro que você está editando.
+              {t('recurring.onlyThisEditHint')}
             </div>
           </button>
 
@@ -96,7 +99,7 @@ const RecurringEditScopeModal: React.FC<RecurringEditScopeModalProps> = ({
             onClick={() => onSelect('series')}
             disabled={isSubmitting}
           >
-            <div className="font-medium text-ink">Todas as recorrentes</div>
+            <div className="font-medium text-ink">{t('recurring.allRecurring')}</div>
             <div className="mt-1 text-sm text-ink/55">{seriesHint}</div>
           </button>
 
@@ -106,7 +109,7 @@ const RecurringEditScopeModal: React.FC<RecurringEditScopeModalProps> = ({
             onClick={onCancel}
             disabled={isSubmitting}
           >
-            Cancelar
+            {t('common.cancel')}
           </button>
         </div>
       </div>

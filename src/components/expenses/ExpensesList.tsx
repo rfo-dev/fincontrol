@@ -7,6 +7,7 @@ import RecurringDeleteScopeModal, { RecurringDeleteScope } from '../shared/Recur
 import { Plus, CreditCard as CreditCardIcon, Trash, Calendar, RefreshCw, CreditCard as Edit, Check, Users, ChevronDown, ChevronRight, X } from 'lucide-react';
 import { Expense } from '../../types';
 import ToggleSwitch from '../ui/ToggleSwitch';
+import { useTranslation } from '../../i18n/LanguageProvider';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -30,6 +31,7 @@ function isCreditCardSummary(row: ListRow): row is CreditCardSummaryRow {
 }
 
 const ExpensesList: React.FC = () => {
+  const { t, months, translateCategory, dateLocale } = useTranslation();
   const { expenses, toggleExpensePaid, deleteExpense, creditCards, getAvailableMonths, getCreditCardExpensesSummary, markCreditCardAsPaid, getBringPreviousExpenses, setBringPreviousExpenses, getPreviousUnpaidExpenses, settlePreviousExpenses } = useFinance();
   const [isAddingExpense, setIsAddingExpense] = useState(false);
   const [editingExpense, setEditingExpense] = useState<any>(null);
@@ -119,7 +121,7 @@ const ExpensesList: React.FC = () => {
 
     return {
       id: `card-${summary.creditCardId}`,
-      description: `Fatura ${card?.name || 'Cartão'}`,
+      description: t('expenses.invoiceName', { name: card?.name || t('common.cardFallback') }),
       category: 'Cartão de Crédito',
       date: oldestDate,
       amount: totalAmount,
@@ -147,11 +149,6 @@ const ExpensesList: React.FC = () => {
     const card = creditCards.find(card => card.id === creditCardId);
     return card ? card.name : null;
   };
-
-  const monthNames = [
-    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
-  ];
 
   const handleEditClick = (expense: Expense) => {
     setEditingExpense(expense);
@@ -205,6 +202,8 @@ const ExpensesList: React.FC = () => {
     });
   };
 
+  const installmentTpl = t('formatters.installment');
+
   const renderExpenseActions = (expense: Expense, options?: { hidePaidToggle?: boolean }) => (
     <div className="flex justify-center gap-2">
       {!expense.isPaid && (
@@ -214,7 +213,7 @@ const ExpensesList: React.FC = () => {
             handleEditClick(expense);
           }}
           className="fc-icon-btn bg-mint-soft text-mint hover:bg-mint hover:text-white"
-          title="Editar despesa"
+          title={t('expenses.editTitle')}
         >
           <Edit size={16} />
         </button>
@@ -231,7 +230,7 @@ const ExpensesList: React.FC = () => {
               ? 'bg-mist text-ink/40 hover:bg-mist-line'
               : 'bg-income-soft text-income hover:bg-income hover:text-white'
           }`}
-          title={expense.isPaid ? 'Marcar como não paga' : 'Marcar como paga'}
+          title={expense.isPaid ? t('expenses.markUnpaid') : t('expenses.markPaid')}
         >
           <Check size={16} />
         </button>
@@ -244,7 +243,7 @@ const ExpensesList: React.FC = () => {
             handleDeleteClick(expense);
           }}
           className="fc-icon-btn bg-expense-soft text-expense hover:bg-expense hover:text-white"
-          title="Excluir despesa"
+          title={t('expenses.deleteTitle')}
         >
           <Trash size={16} />
         </button>
@@ -259,32 +258,32 @@ const ExpensesList: React.FC = () => {
     <tr className="!bg-warn-soft/60 hover:!bg-warn-soft">
       <td>
         <div className="font-medium text-ink">
-          Despesas anteriores não pagas
+          {t('expenses.previousUnpaid')}
           <span className="fc-badge-warn ml-2">
-            {previousExpenses.count} lançamentos
+            {t('expenses.entriesCount', { count: previousExpenses.count })}
           </span>
         </div>
       </td>
       <td>
-        <div className="text-ink/70">Meses anteriores</div>
+        <div className="text-ink/70">{t('expenses.previousMonths')}</div>
       </td>
       <td>
-        <div className="text-ink/50">—</div>
+        <div className="text-ink/50">{t('common.emDash')}</div>
       </td>
       <td>
         <div className="font-semibold text-expense">
-          {formatCurrency(previousExpenses.total)}
+          {formatCurrency(previousExpenses.total, dateLocale)}
         </div>
       </td>
       <td>
-        <span className="fc-badge-danger">Não Paga</span>
+        <span className="fc-badge-danger">{t('expenses.unpaid')}</span>
       </td>
       <td className="text-center">
         <div className="flex justify-center">
           <button
             onClick={() => settlePreviousExpenses(selectedDate)}
             className="fc-icon-btn bg-income-soft text-income hover:bg-income hover:text-white"
-            title="Dar baixa nas despesas anteriores"
+            title={t('expenses.settlePrevious')}
           >
             <Check size={16} />
           </button>
@@ -297,19 +296,19 @@ const ExpensesList: React.FC = () => {
     <div className="fc-card border-l-4 border-l-warn p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="font-medium text-ink">Despesas anteriores não pagas</p>
+          <p className="font-medium text-ink">{t('expenses.previousUnpaid')}</p>
           <p className="mt-1 text-sm text-ink/55">
-            Meses anteriores · {previousExpenses.count} lançamentos
+            {t('expenses.previousMonthsWithCount', { count: previousExpenses.count })}
           </p>
           <p className="mt-2 font-semibold text-expense">
-            {formatCurrency(previousExpenses.total)}
+            {formatCurrency(previousExpenses.total, dateLocale)}
           </p>
-          <span className="fc-badge-danger mt-2">Não Paga</span>
+          <span className="fc-badge-danger mt-2">{t('expenses.unpaid')}</span>
         </div>
         <button
           onClick={() => settlePreviousExpenses(selectedDate)}
           className="fc-icon-btn shrink-0 bg-income-soft text-income hover:bg-income hover:text-white"
-          title="Dar baixa nas despesas anteriores"
+          title={t('expenses.settlePrevious')}
         >
           <Check size={16} />
         </button>
@@ -325,35 +324,31 @@ const ExpensesList: React.FC = () => {
           disabled={currentPage === 1}
           className="fc-btn-secondary text-sm"
         >
-          Anterior
+          {t('common.previous')}
         </button>
         <button
           onClick={() => setCurrentPage(page => Math.min(page + 1, totalPages))}
           disabled={currentPage === totalPages || totalPages === 0}
           className="fc-btn-secondary text-sm"
         >
-          Próxima
+          {t('common.next')}
         </button>
       </div>
       <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
         <p className="text-sm text-ink/60">
-          Mostrando{' '}
-          <span className="font-medium text-ink">
-            {allFilteredExpenses.length === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1}
-          </span>{' '}
-          até{' '}
-          <span className="font-medium text-ink">
-            {Math.min(currentPage * ITEMS_PER_PAGE, allFilteredExpenses.length)}
-          </span>{' '}
-          de <span className="font-medium text-ink">{allFilteredExpenses.length}</span> resultados
+          {t('common.showingResults', {
+            from: allFilteredExpenses.length === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1,
+            to: Math.min(currentPage * ITEMS_PER_PAGE, allFilteredExpenses.length),
+            total: allFilteredExpenses.length,
+          })}
         </p>
-        <nav className="relative z-0 inline-flex -space-x-px rounded-xl" aria-label="Paginação">
+        <nav className="relative z-0 inline-flex -space-x-px rounded-xl" aria-label={t('common.pagination')}>
           <button
             onClick={() => setCurrentPage(page => Math.max(page - 1, 1))}
             disabled={currentPage === 1}
             className="fc-btn-secondary rounded-r-none text-sm"
           >
-            Anterior
+            {t('common.previous')}
           </button>
           {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
             <button
@@ -373,12 +368,14 @@ const ExpensesList: React.FC = () => {
             disabled={currentPage === totalPages || totalPages === 0}
             className="fc-btn-secondary rounded-l-none text-sm"
           >
-            Próxima
+            {t('common.next')}
           </button>
         </nav>
       </div>
     </div>
   );
+
+  const paidLabel = (isPaid: boolean) => (isPaid ? t('expenses.paid') : t('expenses.unpaid'));
 
   return (
     <div className="fc-page">
@@ -394,16 +391,16 @@ const ExpensesList: React.FC = () => {
 
       <div className="fc-page-header">
         <div>
-          <h2 className="fc-title">Despesas</h2>
+          <h2 className="fc-title">{t('expenses.title')}</h2>
           <p className="fc-subtitle">
-            Acompanhe e gerencie suas despesas de {monthNames[selectedMonth - 1]} {selectedYear}
+            {t('expenses.subtitle', { month: months[selectedMonth - 1], year: selectedYear })}
           </p>
         </div>
 
         <div className="fc-toolbar">
           <input
             type="text"
-            placeholder="Buscar despesas..."
+            placeholder={t('expenses.searchPlaceholder')}
             className="fc-input w-full sm:w-56"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -445,10 +442,10 @@ const ExpensesList: React.FC = () => {
             >
               {availableMonthsForYear.length > 0 ? availableMonthsForYear.map((month) => (
                 <option key={month} value={month}>
-                  {monthNames[month - 1]}
+                  {months[month - 1]}
                 </option>
               )) : (
-                <option value={currentMonth}>{monthNames[currentMonth - 1]}</option>
+                <option value={currentMonth}>{months[currentMonth - 1]}</option>
               )}
             </select>
           </div>
@@ -458,26 +455,26 @@ const ExpensesList: React.FC = () => {
               className={`fc-chip ${filterPaid === null ? 'fc-chip-active' : 'fc-chip-idle'}`}
               onClick={() => setFilterPaid(null)}
             >
-              Todas
+              {t('common.all')}
             </button>
             <button
               className={`fc-chip ${filterPaid === true ? 'fc-chip-active' : 'fc-chip-idle'}`}
               onClick={() => setFilterPaid(true)}
             >
-              Pagas
+              {t('expenses.filterPaid')}
             </button>
             <button
               className={`fc-chip ${filterPaid === false ? 'fc-chip-active' : 'fc-chip-idle'}`}
               onClick={() => setFilterPaid(false)}
             >
-              Não Pagas
+              {t('expenses.filterUnpaid')}
             </button>
           </div>
 
           <ToggleSwitch
             checked={bringPreviousExpenses}
             onChange={(checked) => setBringPreviousExpenses(selectedDate, checked)}
-            label="Trazer despesas anteriores"
+            label={t('expenses.bringPrevious')}
           />
 
           <button
@@ -488,7 +485,7 @@ const ExpensesList: React.FC = () => {
             }}
           >
             <Plus size={18} />
-            <span>Adicionar Despesa</span>
+            <span>{t('expenses.add')}</span>
           </button>
         </div>
       </div>
@@ -497,12 +494,12 @@ const ExpensesList: React.FC = () => {
         <div className="fc-form-panel">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="font-display text-lg font-semibold text-ink">
-              {editingExpense ? 'Editar Despesa' : 'Nova Despesa'}
+              {editingExpense ? t('expenses.edit') : t('expenses.new')}
             </h3>
             <button
               onClick={handleFormComplete}
               className="fc-icon-btn text-ink/45 hover:bg-mist hover:text-ink"
-              aria-label="Fechar"
+              aria-label={t('common.close')}
             >
               <X size={18} />
             </button>
@@ -516,18 +513,17 @@ const ExpensesList: React.FC = () => {
 
       {hasContent ? (
         <div className="fc-card overflow-hidden">
-          {/* Desktop table */}
           <div className="fc-desktop-table">
             <div className="fc-table-wrap">
               <table className="fc-table">
                 <thead>
                   <tr>
-                    <th scope="col">Descrição</th>
-                    <th scope="col">Categoria</th>
-                    <th scope="col">Data</th>
-                    <th scope="col">Valor</th>
-                    <th scope="col">Status</th>
-                    <th scope="col" className="text-center">Ações</th>
+                    <th scope="col">{t('common.description')}</th>
+                    <th scope="col">{t('common.category')}</th>
+                    <th scope="col">{t('common.date')}</th>
+                    <th scope="col">{t('common.amount')}</th>
+                    <th scope="col">{t('common.status')}</th>
+                    <th scope="col" className="text-center">{t('common.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -544,7 +540,7 @@ const ExpensesList: React.FC = () => {
                           <tr
                             className="!bg-mint-soft/40 cursor-pointer hover:!bg-mint-soft/70"
                             onClick={() => toggleCardExpanded(expense.creditCardId)}
-                            title={isExpanded ? 'Clique para recolher' : 'Clique para expandir'}
+                            title={isExpanded ? t('expenses.collapse') : t('expenses.expand')}
                           >
                             <td>
                               <div className="flex items-center gap-2">
@@ -557,28 +553,28 @@ const ExpensesList: React.FC = () => {
                                   {expense.description}
                                   <span className="ml-2 inline-flex items-center text-xs text-mint">
                                     <Users size={12} className="mr-1" />
-                                    {expense.expenseCount} despesas
+                                    {t('expenses.expensesCount', { count: expense.expenseCount })}
                                   </span>
                                 </div>
                               </div>
                             </td>
                             <td>
-                              <div className="text-ink/80">{expense.category}</div>
+                              <div className="text-ink/80">{translateCategory(expense.category)}</div>
                             </td>
                             <td>
                               <div className="flex items-center text-ink/80">
                                 <Calendar size={14} className="mr-1 text-ink/35" />
-                                {formatDate(expense.date)}
+                                {formatDate(expense.date, dateLocale)}
                               </div>
                             </td>
                             <td>
                               <div className="font-semibold text-expense">
-                                {formatCurrency(expense.amount)}
+                                {formatCurrency(expense.amount, dateLocale)}
                               </div>
                             </td>
                             <td>
                               <span className={expense.isPaid ? 'fc-badge-success' : 'fc-badge-danger'}>
-                                {expense.isPaid ? 'Paga' : 'Não Paga'}
+                                {paidLabel(expense.isPaid)}
                               </span>
                             </td>
                             <td className="text-center">
@@ -593,7 +589,7 @@ const ExpensesList: React.FC = () => {
                                       ? 'bg-mist text-ink/40 hover:bg-mist-line'
                                       : 'bg-income-soft text-income hover:bg-income hover:text-white'
                                   }`}
-                                  title={expense.isPaid ? 'Marcar fatura como não paga' : 'Marcar fatura como paga'}
+                                  title={expense.isPaid ? t('expenses.markInvoiceUnpaid') : t('expenses.markInvoicePaid')}
                                 >
                                   <Check size={16} />
                                 </button>
@@ -610,14 +606,14 @@ const ExpensesList: React.FC = () => {
                                   {child.isRecurring && (
                                     <span className="fc-badge-info">
                                       <RefreshCw size={12} />
-                                      {formatInstallment(child.recurringIndex, child.recurringCount) || 'Recorrente'}
+                                      {formatInstallment(child.recurringIndex, child.recurringCount, installmentTpl) || t('common.recurring')}
                                     </span>
                                   )}
                                 </div>
                               </td>
                               <td>
                                 <div className="text-ink/70">
-                                  {child.category}
+                                  {translateCategory(child.category)}
                                   <div className="mt-1 flex items-center text-xs text-ink/45">
                                     <CreditCardIcon size={12} className="mr-1" />
                                     {getCreditCardName(child.creditCardId)}
@@ -627,17 +623,17 @@ const ExpensesList: React.FC = () => {
                               <td>
                                 <div className="flex items-center text-ink/70">
                                   <Calendar size={14} className="mr-1 text-ink/35" />
-                                  {formatDate(child.date)}
+                                  {formatDate(child.date, dateLocale)}
                                 </div>
                               </td>
                               <td>
                                 <div className="font-semibold text-expense">
-                                  {formatCurrency(child.amount)}
+                                  {formatCurrency(child.amount, dateLocale)}
                                 </div>
                               </td>
                               <td>
                                 <span className={child.isPaid ? 'fc-badge-success' : 'fc-badge-danger'}>
-                                  {child.isPaid ? 'Paga' : 'Não Paga'}
+                                  {paidLabel(child.isPaid)}
                                 </span>
                               </td>
                               <td className="text-center">
@@ -657,28 +653,28 @@ const ExpensesList: React.FC = () => {
                             {expense.isRecurring && (
                               <span className="fc-badge-info">
                                 <RefreshCw size={12} />
-                                {formatInstallment(expense.recurringIndex, expense.recurringCount) || 'Recorrente'}
+                                {formatInstallment(expense.recurringIndex, expense.recurringCount, installmentTpl) || t('common.recurring')}
                               </span>
                             )}
                           </div>
                         </td>
                         <td>
-                          <div className="text-ink/80">{expense.category}</div>
+                          <div className="text-ink/80">{translateCategory(expense.category)}</div>
                         </td>
                         <td>
                           <div className="flex items-center text-ink/80">
                             <Calendar size={14} className="mr-1 text-ink/35" />
-                            {formatDate(expense.date)}
+                            {formatDate(expense.date, dateLocale)}
                           </div>
                         </td>
                         <td>
                           <div className="font-semibold text-expense">
-                            {formatCurrency(expense.amount)}
+                            {formatCurrency(expense.amount, dateLocale)}
                           </div>
                         </td>
                         <td>
                           <span className={expense.isPaid ? 'fc-badge-success' : 'fc-badge-danger'}>
-                            {expense.isPaid ? 'Paga' : 'Não Paga'}
+                            {paidLabel(expense.isPaid)}
                           </span>
                         </td>
                         <td className="text-center">
@@ -692,7 +688,6 @@ const ExpensesList: React.FC = () => {
             </div>
           </div>
 
-          {/* Mobile card list */}
           <div className="fc-mobile-list p-4">
             {showPreviousRow && renderPreviousCard()}
 
@@ -708,7 +703,7 @@ const ExpensesList: React.FC = () => {
                     <div
                       className="fc-card cursor-pointer border-l-4 border-l-mint p-4"
                       onClick={() => toggleCardExpanded(expense.creditCardId)}
-                      title={isExpanded ? 'Clique para recolher' : 'Clique para expandir'}
+                      title={isExpanded ? t('expenses.collapse') : t('expenses.expand')}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0 flex-1">
@@ -721,18 +716,18 @@ const ExpensesList: React.FC = () => {
                             <p className="truncate font-medium text-ink">{expense.description}</p>
                           </div>
                           <p className="mt-1 text-sm text-ink/55">
-                            {expense.category} · {formatDate(expense.date)}
+                            {translateCategory(expense.category)} · {formatDate(expense.date, dateLocale)}
                           </p>
                           <div className="mt-2 flex flex-wrap items-center gap-2">
                             <span className="font-semibold text-expense">
-                              {formatCurrency(expense.amount)}
+                              {formatCurrency(expense.amount, dateLocale)}
                             </span>
                             <span className={expense.isPaid ? 'fc-badge-success' : 'fc-badge-danger'}>
-                              {expense.isPaid ? 'Paga' : 'Não Paga'}
+                              {paidLabel(expense.isPaid)}
                             </span>
                             <span className="fc-badge-info">
                               <Users size={12} />
-                              {expense.expenseCount} despesas
+                              {t('expenses.expensesCount', { count: expense.expenseCount })}
                             </span>
                           </div>
                         </div>
@@ -746,7 +741,7 @@ const ExpensesList: React.FC = () => {
                               ? 'bg-mist text-ink/40 hover:bg-mist-line'
                               : 'bg-income-soft text-income hover:bg-income hover:text-white'
                           }`}
-                          title={expense.isPaid ? 'Marcar fatura como não paga' : 'Marcar fatura como paga'}
+                          title={expense.isPaid ? t('expenses.markInvoiceUnpaid') : t('expenses.markInvoicePaid')}
                         >
                           <Check size={16} />
                         </button>
@@ -759,26 +754,26 @@ const ExpensesList: React.FC = () => {
                           <div className="min-w-0 flex-1">
                             <p className="font-medium text-ink">{child.description}</p>
                             <p className="mt-1 text-sm text-ink/55">
-                              {child.category}
+                              {translateCategory(child.category)}
                               {getCreditCardName(child.creditCardId) && (
                                 <> · {getCreditCardName(child.creditCardId)}</>
                               )}
                             </p>
                             <p className="mt-1 flex items-center text-xs text-ink/45">
                               <Calendar size={12} className="mr-1" />
-                              {formatDate(child.date)}
+                              {formatDate(child.date, dateLocale)}
                             </p>
                             <div className="mt-2 flex flex-wrap items-center gap-2">
                               <span className="font-semibold text-expense">
-                                {formatCurrency(child.amount)}
+                                {formatCurrency(child.amount, dateLocale)}
                               </span>
                               <span className={child.isPaid ? 'fc-badge-success' : 'fc-badge-danger'}>
-                                {child.isPaid ? 'Paga' : 'Não Paga'}
+                                {paidLabel(child.isPaid)}
                               </span>
                               {child.isRecurring && (
                                 <span className="fc-badge-info">
                                   <RefreshCw size={12} />
-                                  {formatInstallment(child.recurringIndex, child.recurringCount) || 'Recorrente'}
+                                  {formatInstallment(child.recurringIndex, child.recurringCount, installmentTpl) || t('common.recurring')}
                                 </span>
                               )}
                             </div>
@@ -797,19 +792,19 @@ const ExpensesList: React.FC = () => {
                     <div className="min-w-0 flex-1">
                       <p className="font-medium text-ink">{expense.description}</p>
                       <p className="mt-1 text-sm text-ink/55">
-                        {expense.category} · {formatDate(expense.date)}
+                        {translateCategory(expense.category)} · {formatDate(expense.date, dateLocale)}
                       </p>
                       <div className="mt-2 flex flex-wrap items-center gap-2">
                         <span className="font-semibold text-expense">
-                          {formatCurrency(expense.amount)}
+                          {formatCurrency(expense.amount, dateLocale)}
                         </span>
                         <span className={expense.isPaid ? 'fc-badge-success' : 'fc-badge-danger'}>
-                          {expense.isPaid ? 'Paga' : 'Não Paga'}
+                          {paidLabel(expense.isPaid)}
                         </span>
                         {expense.isRecurring && (
                           <span className="fc-badge-info">
                             <RefreshCw size={12} />
-                            {formatInstallment(expense.recurringIndex, expense.recurringCount) || 'Recorrente'}
+                            {formatInstallment(expense.recurringIndex, expense.recurringCount, installmentTpl) || t('common.recurring')}
                           </span>
                         )}
                       </div>
@@ -825,13 +820,13 @@ const ExpensesList: React.FC = () => {
         </div>
       ) : (
         <div className="fc-empty">
-          <p className="mb-4 text-ink/55">Nenhuma despesa encontrada</p>
+          <p className="mb-4 text-ink/55">{t('expenses.empty')}</p>
           <button
             className="fc-btn-primary"
             onClick={() => setIsAddingExpense(true)}
           >
             <Plus size={18} />
-            <span>Adicionar Despesa</span>
+            <span>{t('expenses.add')}</span>
           </button>
         </div>
       )}

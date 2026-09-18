@@ -1,12 +1,17 @@
 /**
- * Formata um número como moeda
+ * Formata um número como moeda conforme o idioma da UI.
+ * pt-BR → BRL (R$); en → USD ($).
  */
-export const formatCurrency = (amount: number): string => {
-  return new Intl.NumberFormat('pt-BR', {
+export const formatCurrency = (
+  amount: number,
+  locale: string = 'pt-BR'
+): string => {
+  const isEn = locale.toLowerCase().startsWith('en');
+  return new Intl.NumberFormat(isEn ? 'en-US' : 'pt-BR', {
     style: 'currency',
-    currency: 'BRL',
+    currency: isEn ? 'USD' : 'BRL',
     minimumFractionDigits: 2,
-    maximumFractionDigits: 2
+    maximumFractionDigits: 2,
   }).format(amount);
 };
 
@@ -90,9 +95,15 @@ export function toDateInputValue(value: Date | string = new Date()): string {
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
-/** Formata data para exibição pt-BR (dd/mm/aaaa) sem deslocar o dia */
-export function formatDate(value: Date | string): string {
+/** Formata data para exibição (dd/mm/aaaa ou locale) sem deslocar o dia */
+export function formatDate(
+  value: Date | string,
+  locale: string = 'pt-BR'
+): string {
   const { year, month, day } = getCalendarParts(value);
+  if (locale.startsWith('en')) {
+    return `${String(month).padStart(2, '0')}/${String(day).padStart(2, '0')}/${year}`;
+  }
   return `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
 }
 
@@ -101,11 +112,14 @@ export function toApiDate(value: Date | string): string {
   return toDateInputValue(value);
 }
 
-/** Formata parcela recorrente, ex: "2 de 5" */
+/** Formata parcela recorrente, ex: "2 de 5" / "2 of 5" */
 export function formatInstallment(
   index?: number | null,
-  count?: number | null
+  count?: number | null,
+  template: string = '{{index}} de {{count}}'
 ): string | null {
   if (!index || !count || count < 1 || index < 1) return null;
-  return `${index} de ${count}`;
+  return template
+    .replace('{{index}}', String(index))
+    .replace('{{count}}', String(count));
 }

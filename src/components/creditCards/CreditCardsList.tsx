@@ -7,8 +7,10 @@ import AddCreditCardExpensesForm from './AddCreditCardExpensesForm';
 import CreditCardExpensesList from './CreditCardExpensesList';
 import { Plus, CreditCard as CreditCardIcon, Trash, Calendar, Pencil, X, AlertTriangle } from 'lucide-react';
 import { CreditCard } from '../../types';
+import { useTranslation } from '../../i18n/LanguageProvider';
 
 const CreditCardsList: React.FC = () => {
+  const { t, dateLocale } = useTranslation();
   const { creditCards, getCreditCardSummaries, deleteCreditCard } = useFinance();
   const [isAddingCard, setIsAddingCard] = useState(false);
   const [editingCard, setEditingCard] = useState<CreditCard | null>(null);
@@ -49,8 +51,8 @@ const CreditCardsList: React.FC = () => {
     <div className="fc-page">
       <div className="fc-page-header">
         <div>
-          <h2 className="fc-title">Cartões de Crédito</h2>
-          <p className="fc-subtitle">Gerencie cartões, faturas e despesas vinculadas</p>
+          <h2 className="fc-title">{t('creditCards.title')}</h2>
+          <p className="fc-subtitle">{t('creditCards.subtitle')}</p>
         </div>
 
         <button
@@ -61,7 +63,7 @@ const CreditCardsList: React.FC = () => {
           }}
         >
           <Plus size={18} />
-          <span>Adicionar Cartão</span>
+          <span>{t('creditCards.add')}</span>
         </button>
       </div>
 
@@ -69,12 +71,12 @@ const CreditCardsList: React.FC = () => {
         <div className="fc-form-panel">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="font-display text-lg font-semibold text-ink">
-              {editingCard ? 'Editar Cartão de Crédito' : 'Adicionar Novo Cartão'}
+              {editingCard ? t('creditCards.edit') : t('creditCards.addNew')}
             </h3>
             <button
               onClick={handleFormComplete}
               className="fc-icon-btn text-ink/45 hover:bg-mist hover:text-ink"
-              aria-label="Fechar"
+              aria-label={t('common.close')}
             >
               <X size={18} />
             </button>
@@ -90,12 +92,12 @@ const CreditCardsList: React.FC = () => {
         <div className="fc-form-panel">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="font-display text-lg font-semibold text-ink">
-              Adicionar Despesas ao Cartão
+              {t('creditCards.addExpensesToCard')}
             </h3>
             <button
               onClick={handleFormComplete}
               className="fc-icon-btn text-ink/45 hover:bg-mist hover:text-ink"
-              aria-label="Fechar"
+              aria-label={t('common.close')}
             >
               <X size={18} />
             </button>
@@ -148,7 +150,7 @@ const CreditCardsList: React.FC = () => {
                       <button
                         onClick={() => handleEditClick(card)}
                         className="fc-icon-btn bg-white/15 text-white hover:bg-white/25"
-                        title="Editar cartão"
+                        title={t('creditCards.editCard')}
                       >
                         <Pencil size={16} />
                       </button>
@@ -158,15 +160,15 @@ const CreditCardsList: React.FC = () => {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <div className="text-xs uppercase tracking-wide text-white/65">Saldo disponível</div>
+                      <div className="text-xs uppercase tracking-wide text-white/65">{t('creditCards.availableBalance')}</div>
                       <div className={`mt-1 font-display text-xl font-bold ${availableBalance < 0 ? 'text-rose-200' : ''}`}>
-                        {formatCurrency(availableBalance)}
+                        {formatCurrency(availableBalance, dateLocale)}
                       </div>
                     </div>
                     <div>
-                      <div className="text-xs uppercase tracking-wide text-white/65">Total gasto</div>
+                      <div className="text-xs uppercase tracking-wide text-white/65">{t('creditCards.totalSpent')}</div>
                       <div className="mt-1 font-display text-xl font-bold">
-                        {formatCurrency(card.totalExpenses)}
+                        {formatCurrency(card.totalExpenses, dateLocale)}
                       </div>
                     </div>
                   </div>
@@ -174,20 +176,21 @@ const CreditCardsList: React.FC = () => {
                   <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 border-t border-white/15 pt-3 text-sm text-white/85">
                     <div className="flex items-center gap-1.5">
                       <Calendar size={14} />
-                      <span>Vencimento: dia {card.due_day}</span>
+                      <span>{t('creditCards.dueDay', { day: card.due_day })}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <Calendar size={14} />
                       <span>
-                        Fechamento:{' '}
-                        {card.closing_day ? `dia ${card.closing_day}` : 'não informado'}
+                        {card.closing_day
+                          ? t('creditCards.closingDay', { day: card.closing_day })
+                          : t('creditCards.closingNotSet')}
                       </span>
                     </div>
                   </div>
 
                   {card.credit_limit > 0 && (
                     <p className="mt-2 text-xs text-white/60">
-                      Limite: {formatCurrency(card.credit_limit)}
+                      {t('creditCards.limit', { amount: formatCurrency(card.credit_limit, dateLocale) })}
                     </p>
                   )}
                 </div>
@@ -195,30 +198,32 @@ const CreditCardsList: React.FC = () => {
                 <div className="flex flex-wrap items-center justify-between gap-3 p-4">
                   <p className="text-sm text-ink/55">
                     {expenseCount === 0
-                      ? 'Nenhuma despesa vinculada'
-                      : `${expenseCount} despesa${expenseCount > 1 ? 's' : ''} vinculada${expenseCount > 1 ? 's' : ''}`}
+                      ? t('creditCards.noLinkedExpenses')
+                      : expenseCount === 1
+                        ? t('creditCards.linkedExpensesOne', { count: expenseCount })
+                        : t('creditCards.linkedExpensesMany', { count: expenseCount })}
                   </p>
                   <div className="flex flex-wrap gap-2">
                     <button
                       onClick={() => setAddingExpensesToCard(card)}
                       className="fc-btn-secondary !px-3 !py-1.5 text-xs"
-                      title="Adicionar despesas"
+                      title={t('creditCards.addExpenses')}
                     >
                       <Plus size={14} />
-                      Despesas
+                      {t('creditCards.expenses')}
                     </button>
                     <button
                       onClick={() => setViewingExpensesCard(card)}
                       className="fc-btn-secondary !px-3 !py-1.5 text-xs"
-                      title="Gerenciar despesas"
+                      title={t('creditCards.manageExpenses')}
                     >
                       <Pencil size={14} />
-                      Gerenciar
+                      {t('creditCards.manage')}
                     </button>
                     <button
                       onClick={() => setCardToDelete(card)}
                       className="fc-icon-btn bg-expense-soft text-expense hover:bg-expense hover:text-white"
-                      title="Excluir cartão"
+                      title={t('creditCards.deleteCard')}
                     >
                       <Trash size={16} />
                     </button>
@@ -231,13 +236,13 @@ const CreditCardsList: React.FC = () => {
       ) : (
         <div className="fc-empty">
           <CreditCardIcon size={36} className="mb-3 text-mint" />
-          <p className="mb-4 text-ink/55">Nenhum cartão adicionado ainda</p>
+          <p className="mb-4 text-ink/55">{t('creditCards.empty')}</p>
           <button
             className="fc-btn-primary"
             onClick={() => setIsAddingCard(true)}
           >
             <Plus size={18} />
-            <span>Adicionar Cartão</span>
+            <span>{t('creditCards.add')}</span>
           </button>
         </div>
       )}
@@ -258,6 +263,8 @@ const DeleteCreditCardModal: React.FC<DeleteCreditCardModalProps> = ({
   onCancel,
   onConfirm,
 }) => {
+  const { t } = useTranslation();
+
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -294,11 +301,10 @@ const DeleteCreditCardModal: React.FC<DeleteCreditCardModalProps> = ({
             </div>
             <div className="min-w-0">
               <h3 id="delete-credit-card-title" className="font-display text-lg font-semibold text-ink">
-                Excluir cartão {card.name}?
+                {t('creditCards.deleteTitle', { name: card.name })}
               </h3>
               <p className="mt-2 text-sm leading-relaxed text-ink/60">
-                Ao excluir este cartão, as despesas vinculadas permanecerão no sistema,
-                porém não estarão mais vinculadas a nenhum cartão.
+                {t('creditCards.deleteBody')}
               </p>
             </div>
           </div>
@@ -310,7 +316,7 @@ const DeleteCreditCardModal: React.FC<DeleteCreditCardModalProps> = ({
               onClick={onCancel}
               disabled={isDeleting}
             >
-              Cancelar
+              {t('common.cancel')}
             </button>
             <button
               type="button"
@@ -319,7 +325,7 @@ const DeleteCreditCardModal: React.FC<DeleteCreditCardModalProps> = ({
               disabled={isDeleting}
             >
               <Trash size={16} />
-              {isDeleting ? 'Excluindo...' : 'Excluir cartão'}
+              {isDeleting ? t('creditCards.deleting') : t('creditCards.deleteCard')}
             </button>
           </div>
         </div>

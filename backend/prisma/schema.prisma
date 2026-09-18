@@ -152,3 +152,17 @@ model WhatsAppConnection {
 
   @@map("whatsapp_connections")
 }
+
+/// Singleton (id = "default") with Meta app credentials for Embedded Signup.
+model WhatsAppMetaSettings {
+  id                     String   @id @default("default")
+  appId                  String   @default("") @map("app_id")
+  appSecretEnc           String?  @map("app_secret_enc") @db.Text
+  embeddedSignupConfigId String   @default("") @map("embedded_signup_config_id")
+  graphApiVersion        String   @default("v21.0") @map("graph_api_version")
+  webhookVerifyToken     String   @default("") @map("webhook_verify_token")
+  createdAt              DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt              DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("whatsapp_meta_settings")
+}

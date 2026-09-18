@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useAuthStore } from './store/authStore';
 import { FinanceProvider } from './context/FinanceContext';
+import { useTranslation } from './i18n/LanguageProvider';
 import Header from './components/shared/Header';
 import Dashboard from './components/dashboard/Dashboard';
 import IncomeList from './components/income/IncomeList';
@@ -17,6 +18,7 @@ import './index.css';
 function App() {
   const [activePage, setActivePage] = React.useState('dashboard');
   const { user, loading, checkUser, adminPortal } = useAuthStore();
+  const { t } = useTranslation();
 
   useEffect(() => {
     checkUser();
@@ -36,7 +38,7 @@ function App() {
       <div className="flex min-h-screen items-center justify-center bg-app-glow">
         <div className="flex flex-col items-center gap-3">
           <div className="h-11 w-11 animate-softPulse rounded-2xl border-2 border-mint/30 border-t-mint" />
-          <p className="text-sm font-medium text-ink/50">Carregando FinControl…</p>
+          <p className="text-sm font-medium text-ink/50">{t('app.loading')}</p>
         </div>
       </div>
     );

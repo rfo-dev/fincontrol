@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useAuthStore } from '../../store/authStore';
 import { LogIn, UserPlus, AlertCircle, Wallet, Shield } from 'lucide-react';
+import { useTranslation } from '../../i18n/LanguageProvider';
+import LanguageSwitcher from '../shared/LanguageSwitcher';
 
 type AuthMode = 'login' | 'signup' | 'admin';
 
@@ -10,6 +12,7 @@ function hasSecretAdminAccess(): boolean {
 }
 
 const Login: React.FC = () => {
+  const { t } = useTranslation();
   const [mode, setMode] = useState<AuthMode>(() =>
     hasSecretAdminAccess() ? 'admin' : 'login'
   );
@@ -48,54 +51,59 @@ const Login: React.FC = () => {
       }
 
       if (name.trim().length < 2) {
-        setError('Informe o nome completo');
+        setError(t('auth.errorFullName'));
         return;
       }
       if (password.length < 6) {
-        setError('A senha deve ter pelo menos 6 caracteres');
+        setError(t('auth.errorPasswordLength'));
         return;
       }
       if (password !== confirmPassword) {
-        setError('As senhas não coincidem');
+        setError(t('auth.errorPasswordMismatch'));
         return;
       }
       await signUp(name.trim(), email, password);
     } catch (err: unknown) {
-      console.error('Erro de autenticação:', err);
+      console.error('Auth error:', err);
       const message = err instanceof Error ? err.message : '';
 
       if (
         message.includes('já está cadastrado') ||
         message.toLowerCase().includes('already')
       ) {
-        setError('Este email já está cadastrado. Faça login ou use outro email.');
+        setError(t('auth.errorEmailTaken'));
         setPassword('');
         setConfirmPassword('');
         setMode('login');
       } else if (message.includes('restrito a administradores')) {
-        setError('Acesso restrito a administradores');
+        setError(t('auth.errorAdminOnly'));
       } else if (
         message.includes('inválidos') ||
         message.toLowerCase().includes('invalid')
       ) {
-        setError('Email ou senha inválidos');
+        setError(t('auth.errorInvalidCredentials'));
       } else {
-        setError(message || 'Ocorreu um erro durante a autenticação. Por favor, tente novamente.');
+        setError(message || t('auth.errorGeneric'));
       }
     }
   };
 
   const title =
-    mode === 'admin' ? 'Portal Admin' : mode === 'signup' ? 'Criar conta' : 'Entrar';
+    mode === 'admin'
+      ? t('auth.titleAdmin')
+      : mode === 'signup'
+        ? t('auth.titleSignup')
+        : t('auth.titleLogin');
   const subtitle =
     mode === 'admin'
-      ? 'Acesso exclusivo para administradores'
+      ? t('auth.subtitleAdmin')
       : mode === 'signup'
-        ? 'Comece a organizar suas finanças'
-        : 'Acesse seu controle financeiro';
+        ? t('auth.subtitleSignup')
+        : t('auth.subtitleLogin');
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-login-glow">
+      <LanguageSwitcher variant="login" />
       <div className="pointer-events-none absolute inset-0 opacity-30 [background-image:radial-gradient(rgba(255,255,255,0.12)_1px,transparent_1px)] [background-size:22px_22px]" />
 
       <div className="relative mx-auto flex min-h-screen max-w-6xl flex-col items-center justify-center gap-10 px-4 py-10 lg:flex-row lg:justify-between lg:gap-16">
@@ -107,18 +115,14 @@ const Login: React.FC = () => {
               <Wallet className="text-mint-bright" size={22} />
             )}
             <span className="font-display text-2xl font-bold tracking-tight">
-              {mode === 'admin' ? 'FinControl Admin' : 'FinControl'}
+              {mode === 'admin' ? t('auth.brandAdmin') : t('auth.brand')}
             </span>
           </div>
           <h2 className="font-display text-3xl font-bold leading-tight sm:text-4xl">
-            {mode === 'admin'
-              ? 'Gestão de usuários e acessos.'
-              : 'Seu dinheiro, com clareza e controle.'}
+            {mode === 'admin' ? t('auth.heroTitleAdmin') : t('auth.heroTitle')}
           </h2>
           <p className="mt-3 text-sm leading-relaxed text-white/65 sm:text-base">
-            {mode === 'admin'
-              ? 'Gerencie contas, redefina senhas e controle o status dos usuários do sistema.'
-              : 'Receitas, despesas, cartões e relatórios em um painel moderno feito para o dia a dia.'}
+            {mode === 'admin' ? t('auth.heroBodyAdmin') : t('auth.heroBody')}
           </p>
         </div>
 
@@ -138,7 +142,9 @@ const Login: React.FC = () => {
           <form onSubmit={handleSubmit} className="space-y-4">
             {mode === 'signup' && (
               <div>
-                <label htmlFor="name" className="fc-label">Nome completo*</label>
+                <label htmlFor="name" className="fc-label">
+                  {t('common.fullNameRequired')}
+                </label>
                 <input
                   type="text"
                   id="name"
@@ -147,13 +153,15 @@ const Login: React.FC = () => {
                   className="fc-input"
                   required
                   minLength={2}
-                  placeholder="Seu nome completo"
+                  placeholder={t('auth.namePlaceholder')}
                 />
               </div>
             )}
 
             <div>
-              <label htmlFor="email" className="fc-label">E-mail</label>
+              <label htmlFor="email" className="fc-label">
+                {t('common.email')}
+              </label>
               <input
                 type="email"
                 id="email"
@@ -165,7 +173,9 @@ const Login: React.FC = () => {
             </div>
 
             <div>
-              <label htmlFor="password" className="fc-label">Senha</label>
+              <label htmlFor="password" className="fc-label">
+                {t('common.password')}
+              </label>
               <input
                 type="password"
                 id="password"
@@ -176,13 +186,15 @@ const Login: React.FC = () => {
                 minLength={6}
               />
               {mode === 'signup' && (
-                <p className="mt-1.5 text-xs text-ink/45">A senha deve ter pelo menos 6 caracteres</p>
+                <p className="mt-1.5 text-xs text-ink/45">{t('auth.passwordHint')}</p>
               )}
             </div>
 
             {mode === 'signup' && (
               <div>
-                <label htmlFor="confirmPassword" className="fc-label">Confirmar senha</label>
+                <label htmlFor="confirmPassword" className="fc-label">
+                  {t('common.confirmPassword')}
+                </label>
                 <input
                   type="password"
                   id="confirmPassword"
@@ -199,12 +211,14 @@ const Login: React.FC = () => {
               {mode === 'signup' ? (
                 <>
                   <UserPlus size={18} />
-                  <span>Cadastrar</span>
+                  <span>{t('auth.submitSignup')}</span>
                 </>
               ) : (
                 <>
                   {mode === 'admin' ? <Shield size={18} /> : <LogIn size={18} />}
-                  <span>{mode === 'admin' ? 'Entrar no Admin' : 'Entrar'}</span>
+                  <span>
+                    {mode === 'admin' ? t('auth.submitAdmin') : t('auth.submitLogin')}
+                  </span>
                 </>
               )}
             </button>
@@ -220,7 +234,7 @@ const Login: React.FC = () => {
                 }}
                 className="text-sm font-medium text-mint hover:text-ink"
               >
-                {mode === 'login' ? 'Não tem uma conta? Cadastre-se' : 'Já tem uma conta? Faça login'}
+                {mode === 'login' ? t('auth.switchToSignup') : t('auth.switchToLogin')}
               </button>
             </div>
           )}

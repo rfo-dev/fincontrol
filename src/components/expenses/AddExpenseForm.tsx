@@ -5,6 +5,7 @@ import { calculateCreditCardDueDate, calculateRecurringDueDates } from '../../ut
 import { formatDate, parseDateInput, toDateInputValue } from '../../utils/formatters';
 import RecurringEditScopeModal, { RecurringEditScope } from '../shared/RecurringEditScopeModal';
 import ToggleSwitch from '../ui/ToggleSwitch';
+import { useTranslation } from '../../i18n/LanguageProvider';
 
 const EXPENSE_CATEGORIES = [
   "Alimentação", "Moradia", "Transporte", "Entretenimento",
@@ -28,6 +29,7 @@ interface AddExpenseFormProps {
 }
 
 const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ onComplete, expense }) => {
+  const { t, translateCategory, dateLocale } = useTranslation();
   const { addExpense, updateExpense, creditCards, fetchExpenses } = useFinance();
 
   const [description, setDescription] = useState(expense?.description || '');
@@ -145,7 +147,7 @@ const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ onComplete, expense }) 
     setError('');
 
     if (!description || !amount || !category) {
-      setError('Por favor, preencha todos os campos obrigatórios');
+      setError(t('common.requiredFields'));
       return;
     }
 
@@ -160,7 +162,7 @@ const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ onComplete, expense }) 
       onComplete();
     } catch (error: unknown) {
       console.error('Erro ao adicionar despesa:', error);
-      const message = error instanceof Error ? error.message : 'Erro ao salvar a despesa. Por favor, tente novamente.';
+      const message = error instanceof Error ? error.message : t('expenses.saveError');
       setError(message);
     } finally {
       setIsSubmitting(false);
@@ -175,7 +177,7 @@ const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ onComplete, expense }) 
       onComplete();
     } catch (error: unknown) {
       console.error('Erro ao atualizar despesa recorrente:', error);
-      const message = error instanceof Error ? error.message : 'Erro ao salvar a despesa. Por favor, tente novamente.';
+      const message = error instanceof Error ? error.message : t('expenses.saveError');
       setError(message);
     } finally {
       setIsSubmitting(false);
@@ -188,7 +190,7 @@ const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ onComplete, expense }) 
     if (!selectedCard) return null;
 
     const dueDate = calculateCreditCardDueDate(selectedCard);
-    return formatDate(dueDate);
+    return formatDate(dueDate, dateLocale);
   };
 
   return (
@@ -212,7 +214,7 @@ const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ onComplete, expense }) 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <label htmlFor="description" className="fc-label">
-              Descrição*
+              {t('common.descriptionRequired')}
             </label>
             <input
               type="text"
@@ -226,11 +228,11 @@ const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ onComplete, expense }) 
 
           <div>
             <label htmlFor="amount" className="fc-label">
-              Valor*
+              {t('common.amountRequired')}
             </label>
             <div className="relative">
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                <span className="text-sm text-ink/45">R$</span>
+                <span className="text-sm text-ink/45">{t('common.currencySymbol')}</span>
               </div>
               <input
                 type="number"
@@ -247,7 +249,7 @@ const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ onComplete, expense }) 
 
           <div>
             <label htmlFor="creditCard" className="fc-label">
-              Cartão de Crédito
+              {t('expenses.creditCard')}
             </label>
             <div className="relative">
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -259,7 +261,7 @@ const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ onComplete, expense }) 
                 value={creditCardId || ''}
                 onChange={(e) => setCreditCardId(e.target.value || undefined)}
               >
-                <option value="">Nenhum</option>
+                <option value="">{t('expenses.noneCard')}</option>
                 {creditCards.map((card) => (
                   <option key={card.id} value={card.id}>{card.name}</option>
                 ))}
@@ -269,7 +271,7 @@ const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ onComplete, expense }) 
 
           <div>
             <label htmlFor="date" className="fc-label">
-              Data
+              {t('common.date')}
             </label>
             <div className="relative">
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -286,14 +288,14 @@ const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ onComplete, expense }) 
             </div>
             {creditCardId && (
               <p className="mt-1 text-xs text-ink/45">
-                Vencimento calculado: {getDisplayDueDate()} (baseado no fechamento e vencimento do cartão)
+                {t('expenses.dueCalculated', { date: getDisplayDueDate() || '' })}
               </p>
             )}
           </div>
 
           <div>
             <label htmlFor="category" className="fc-label">
-              Categoria*
+              {t('common.categoryRequired')}
             </label>
             <select
               id="category"
@@ -303,7 +305,7 @@ const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ onComplete, expense }) 
               required
             >
               {EXPENSE_CATEGORIES.map((cat) => (
-                <option key={cat} value={cat}>{cat}</option>
+                <option key={cat} value={cat}>{translateCategory(cat)}</option>
               ))}
             </select>
           </div>
@@ -318,7 +320,7 @@ const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ onComplete, expense }) 
               label={
                 <span className="flex items-center gap-1.5">
                   <RefreshCw size={16} className="text-mint" />
-                  Esta é uma despesa recorrente
+                  {t('expenses.isRecurring')}
                 </span>
               }
               className="w-fit"
@@ -328,7 +330,7 @@ const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ onComplete, expense }) 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
                   <label htmlFor="recurringInterval" className="fc-label">
-                    Intervalo de Recorrência
+                    {t('expenses.recurringInterval')}
                   </label>
                   <select
                     id="recurringInterval"
@@ -336,15 +338,15 @@ const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ onComplete, expense }) 
                     value={recurringInterval}
                     onChange={(e) => setRecurringInterval(e.target.value as 'weekly' | 'monthly' | 'yearly')}
                   >
-                    <option value="weekly">Semanal</option>
-                    <option value="monthly">Mensal</option>
-                    <option value="yearly">Anual</option>
+                    <option value="weekly">{t('expenses.intervalWeekly')}</option>
+                    <option value="monthly">{t('expenses.intervalMonthly')}</option>
+                    <option value="yearly">{t('expenses.intervalYearly')}</option>
                   </select>
                 </div>
 
                 <div>
                   <label htmlFor="recurringCount" className="fc-label">
-                    Quantidade de Recorrências
+                    {t('expenses.recurringCount')}
                   </label>
                   <input
                     type="number"
@@ -368,14 +370,14 @@ const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ onComplete, expense }) 
             onClick={onComplete}
             disabled={isSubmitting}
           >
-            Cancelar
+            {t('common.cancel')}
           </button>
           <button
             type="submit"
             className="fc-btn-primary"
             disabled={isSubmitting}
           >
-            {isSubmitting ? 'Salvando...' : expense?.id ? 'Atualizar Despesa' : 'Adicionar Despesa'}
+            {isSubmitting ? t('common.saving') : expense?.id ? t('expenses.update') : t('expenses.add')}
           </button>
         </div>
       </form>

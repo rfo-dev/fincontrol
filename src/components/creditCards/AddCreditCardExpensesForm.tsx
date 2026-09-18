@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { useFinance } from '../../context/FinanceContext';
 import { Plus, Trash, CreditCard } from 'lucide-react';
 import { CreditCard as CreditCardType } from '../../types';
-import { formatDate } from '../../utils/formatters';
+import { formatCurrency, formatDate } from '../../utils/formatters';
 import { calculateCreditCardDueDate } from '../../utils/creditCardDueDate';
+import { useTranslation } from '../../i18n/LanguageProvider';
 
 const EXPENSE_CATEGORIES = [
   "Alimentação", "Moradia", "Transporte", "Entretenimento",
@@ -27,6 +28,7 @@ const AddCreditCardExpensesForm: React.FC<AddCreditCardExpensesFormProps> = ({
   creditCard,
   onComplete
 }) => {
+  const { t, translateCategory, dateLocale } = useTranslation();
   const { addExpense, fetchExpenses } = useFinance();
 
   const [expenses, setExpenses] = useState<ExpenseItem[]>([
@@ -66,7 +68,7 @@ const AddCreditCardExpensesForm: React.FC<AddCreditCardExpensesFormProps> = ({
     );
 
     if (validExpenses.length === 0) {
-      setError('Por favor, adicione pelo menos uma despesa válida');
+      setError(t('creditCards.atLeastOne'));
       return;
     }
 
@@ -75,14 +77,13 @@ const AddCreditCardExpensesForm: React.FC<AddCreditCardExpensesFormProps> = ({
     );
 
     if (invalidAmounts) {
-      setError('Todos os valores devem ser números positivos');
+      setError(t('common.positiveAmounts'));
       return;
     }
 
     try {
       setIsSubmitting(true);
 
-      // Use the new due date calculation
       const dueDate = calculateCreditCardDueDate(creditCard);
 
       const promises = validExpenses.map(expense =>
@@ -102,7 +103,7 @@ const AddCreditCardExpensesForm: React.FC<AddCreditCardExpensesFormProps> = ({
       onComplete();
     } catch (error: any) {
       console.error('Erro ao adicionar despesas:', error);
-      setError(error.message || 'Erro ao salvar as despesas. Por favor, tente novamente.');
+      setError(error.message || t('creditCards.saveExpensesError'));
     } finally {
       setIsSubmitting(false);
     }
@@ -115,9 +116,9 @@ const AddCreditCardExpensesForm: React.FC<AddCreditCardExpensesFormProps> = ({
       return sum + (isNaN(amount) ? 0 : amount);
     }, 0);
 
-  // Calculate and display the due date
   const calculatedDueDate = calculateCreditCardDueDate(creditCard);
-  const formattedDueDate = formatDate(calculatedDueDate);
+  const formattedDueDate = formatDate(calculatedDueDate, dateLocale);
+  const validCount = expenses.filter(e => e.description && e.amount).length;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -135,16 +136,19 @@ const AddCreditCardExpensesForm: React.FC<AddCreditCardExpensesFormProps> = ({
           </h4>
           <div className="text-sm text-ink/55">
             {creditCard.closing_day && (
-              <span>Fechamento: Dia {creditCard.closing_day} | </span>
+              <span>{t('creditCards.closingOnly', { day: creditCard.closing_day })}</span>
             )}
-            Vencimento: Dia {creditCard.due_day}
+            {t('creditCards.dueOnly', { day: creditCard.due_day })}
           </div>
         </div>
         <div className="text-sm text-ink/60">
-          As despesas serão agendadas para: <strong className="text-ink">{formattedDueDate}</strong>
+          {t('creditCards.scheduledFor', { date: formattedDueDate })}
           {creditCard.closing_day && (
             <span className="mt-1 block text-xs text-ink/45">
-              (baseado no fechamento dia {creditCard.closing_day} e vencimento dia {creditCard.due_day})
+              {t('creditCards.basedOnClosingDue', {
+                closingDay: creditCard.closing_day,
+                dueDay: creditCard.due_day,
+              })}
             </span>
           )}
         </div>
@@ -152,14 +156,14 @@ const AddCreditCardExpensesForm: React.FC<AddCreditCardExpensesFormProps> = ({
 
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-3">
-          <h4 className="font-medium text-ink">Despesas do Cartão</h4>
+          <h4 className="font-medium text-ink">{t('creditCards.expensesOfCard')}</h4>
           <button
             type="button"
             onClick={addExpenseRow}
             className="fc-btn-ghost !px-2 !py-1.5 text-sm text-mint hover:text-ink"
           >
             <Plus size={16} />
-            Adicionar Despesa
+            {t('expenses.add')}
           </button>
         </div>
 
@@ -170,25 +174,25 @@ const AddCreditCardExpensesForm: React.FC<AddCreditCardExpensesFormProps> = ({
           >
             <div>
               <label className="fc-label">
-                Descrição*
+                {t('common.descriptionRequired')}
               </label>
               <input
                 type="text"
                 className="fc-input"
                 value={expense.description}
                 onChange={(e) => updateExpense(expense.id, 'description', e.target.value)}
-                placeholder="Ex: Compra no supermercado"
+                placeholder={t('creditCards.descriptionPlaceholder')}
                 required
               />
             </div>
 
             <div>
               <label className="fc-label">
-                Valor*
+                {t('common.amountRequired')}
               </label>
               <div className="relative">
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                  <span className="text-sm text-ink/45">R$</span>
+                  <span className="text-sm text-ink/45">{t('common.currencySymbol')}</span>
                 </div>
                 <input
                   type="number"
@@ -204,7 +208,7 @@ const AddCreditCardExpensesForm: React.FC<AddCreditCardExpensesFormProps> = ({
 
             <div>
               <label className="fc-label">
-                Categoria*
+                {t('common.categoryRequired')}
               </label>
               <select
                 className="fc-input"
@@ -213,7 +217,7 @@ const AddCreditCardExpensesForm: React.FC<AddCreditCardExpensesFormProps> = ({
                 required
               >
                 {EXPENSE_CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat}>{cat}</option>
+                  <option key={cat} value={cat}>{translateCategory(cat)}</option>
                 ))}
               </select>
             </div>
@@ -224,7 +228,7 @@ const AddCreditCardExpensesForm: React.FC<AddCreditCardExpensesFormProps> = ({
                   type="button"
                   onClick={() => removeExpenseRow(expense.id)}
                   className="fc-icon-btn bg-expense-soft text-expense hover:bg-expense hover:text-white"
-                  title="Remover despesa"
+                  title={t('creditCards.removeExpense')}
                 >
                   <Trash size={18} />
                 </button>
@@ -237,9 +241,9 @@ const AddCreditCardExpensesForm: React.FC<AddCreditCardExpensesFormProps> = ({
       {totalAmount > 0 && (
         <div className="rounded-xl border border-mint/20 bg-mint-soft p-4">
           <div className="flex items-center justify-between gap-3">
-            <span className="font-medium text-ink">Total das Despesas:</span>
+            <span className="font-medium text-ink">{t('creditCards.expensesTotal')}</span>
             <span className="font-display text-xl font-bold text-mint">
-              {totalAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              {formatCurrency(totalAmount, dateLocale)}
             </span>
           </div>
         </div>
@@ -252,14 +256,14 @@ const AddCreditCardExpensesForm: React.FC<AddCreditCardExpensesFormProps> = ({
           onClick={onComplete}
           disabled={isSubmitting}
         >
-          Cancelar
+          {t('common.cancel')}
         </button>
         <button
           type="submit"
           className="fc-btn-primary"
           disabled={isSubmitting}
         >
-          {isSubmitting ? 'Salvando...' : `Adicionar ${expenses.filter(e => e.description && e.amount).length} Despesa(s)`}
+          {isSubmitting ? t('common.saving') : t('creditCards.addCount', { count: validCount })}
         </button>
       </div>
     </form>

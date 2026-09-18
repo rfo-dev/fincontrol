@@ -53,6 +53,7 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
+          # Leave empty: production uses same-origin /api via nginx proxy.
           build-args: |
             VITE_API_URL=
           tags: |

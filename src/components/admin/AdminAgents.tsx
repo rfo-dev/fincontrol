@@ -13,6 +13,7 @@ import { api } from '../../lib/api';
 import { defaultModelForProvider, modelsForProvider } from '../../lib/aiModels';
 import { APP_ROLES, AppRole, roleLabel } from '../../lib/roles';
 import ToggleSwitch from '../ui/ToggleSwitch';
+import { useTranslation } from '../../i18n/LanguageProvider';
 
 type AiAgent = {
   id: string;
@@ -28,37 +29,35 @@ type AiAgent = {
   updatedAt: string;
 };
 
-const DEFAULT_PROMPT = `Você é um assistente do FinControl.
-Ajude o usuário a entender receitas, despesas, cartões e totais da própria conta.
-Pode criar lançamentos e marcar pagos/recebidos quando solicitado com clareza.
-Seja objetivo, em português do Brasil, e nunca invente valores.`;
-
-const emptyForm = {
-  name: 'Assistente Financeiro',
-  provider: 'openai' as 'openai' | 'claude',
-  model: defaultModelForProvider('openai'),
-  apiKey: '',
-  systemPrompt: DEFAULT_PROMPT,
-  isEnabled: false,
-  audienceMode: 'all' as 'all' | 'roles',
-  enabledRoles: ['user_ai'] as AppRole[],
-};
-
-function audienceSummary(agent: AiAgent): string {
-  if (!agent.isEnabled) return 'Desabilitado';
-  if (agent.audienceMode !== 'roles') return 'Todos os usuários';
-  if (!agent.enabledRoles?.length) return 'Nenhum perfil';
-  return agent.enabledRoles.map(roleLabel).join(', ');
+function audienceSummary(
+  agent: AiAgent,
+  t: (key: string, vars?: Record<string, string | number>) => string
+): string {
+  if (!agent.isEnabled) return t('adminAgents.audienceDisabled');
+  if (agent.audienceMode !== 'roles') return t('adminAgents.audienceAll');
+  if (!agent.enabledRoles?.length) return t('adminAgents.audienceNone');
+  return agent.enabledRoles.map((role) => roleLabel(role, t)).join(', ');
 }
 
 const AdminAgents: React.FC = () => {
+  const { t } = useTranslation();
+  const makeEmptyForm = () => ({
+    name: t('adminAgents.defaultName'),
+    provider: 'openai' as 'openai' | 'claude',
+    model: defaultModelForProvider('openai'),
+    apiKey: '',
+    systemPrompt: t('adminAgents.defaultPrompt'),
+    isEnabled: false,
+    audienceMode: 'all' as 'all' | 'roles',
+    enabledRoles: ['user_ai'] as AppRole[],
+  });
   const [agents, setAgents] = useState<AiAgent[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [editing, setEditing] = useState<AiAgent | null>(null);
   const [isCreating, setIsCreating] = useState(false);
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState(makeEmptyForm);
 
   const loadAgents = async () => {
     try {
@@ -67,7 +66,7 @@ const AdminAgents: React.FC = () => {
       const data = await api<AiAgent[]>('/api/admin/ai/agents');
       setAgents(data);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Falha ao carregar agentes');
+      setError(err instanceof Error ? err.message : t('adminAgents.errorLoad'));
     } finally {
       setLoading(false);
     }
@@ -80,7 +79,7 @@ const AdminAgents: React.FC = () => {
   const openCreate = () => {
     setIsCreating(true);
     setEditing(null);
-    setForm(emptyForm);
+    setForm(makeEmptyForm());
     setError('');
   };
 
@@ -127,19 +126,19 @@ const AdminAgents: React.FC = () => {
 
   const saveAgent = async () => {
     if (form.name.trim().length < 2) {
-      setError('Informe o nome do agente');
+      setError(t('adminAgents.errorName'));
       return;
     }
     if (form.systemPrompt.trim().length < 10) {
-      setError('Informe um prompt com pelo menos 10 caracteres');
+      setError(t('adminAgents.errorPrompt'));
       return;
     }
     if (isCreating && form.apiKey.trim().length < 10) {
-      setError('Informe a chave de API');
+      setError(t('adminAgents.errorApiKey'));
       return;
     }
     if (form.isEnabled && form.audienceMode === 'roles' && form.enabledRoles.length === 0) {
-      setError('Selecione ao menos um perfil para habilitar');
+      setError(t('adminAgents.errorRoles'));
       return;
     }
 
@@ -173,7 +172,7 @@ const AdminAgents: React.FC = () => {
       closeModal();
       await loadAgents();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Falha ao salvar agente');
+      setError(err instanceof Error ? err.message : t('adminAgents.errorSave'));
     } finally {
       setSaving(false);
     }
@@ -189,20 +188,20 @@ const AdminAgents: React.FC = () => {
       });
       await loadAgents();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Falha ao atualizar status');
+      setError(err instanceof Error ? err.message : t('adminAgents.errorStatus'));
     } finally {
       setSaving(false);
     }
   };
 
   const deleteAgent = async (agent: AiAgent) => {
-    if (!window.confirm(`Excluir o agente "${agent.name}"?`)) return;
+    if (!window.confirm(t('adminAgents.confirmDelete', { name: agent.name }))) return;
     try {
       setSaving(true);
       await api<void>(`/api/admin/ai/agents/${agent.id}`, { method: 'DELETE' });
       setAgents((prev) => prev.filter((a) => a.id !== agent.id));
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Falha ao excluir agente');
+      setError(err instanceof Error ? err.message : t('adminAgents.errorDelete'));
     } finally {
       setSaving(false);
     }
@@ -215,19 +214,19 @@ const AdminAgents: React.FC = () => {
     <div className="fc-page">
       <div className="fc-page-header">
         <div>
-          <h2 className="fc-title">Agentes de IA</h2>
+          <h2 className="fc-title">{t('adminAgents.title')}</h2>
           <p className="fc-subtitle">
-            Configure prompt, provedor, modelo e para quais perfis o chat fica disponível.
+            {t('adminAgents.subtitle')}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button className="fc-btn-primary" onClick={openCreate}>
             <Plus size={16} />
-            Novo agente
+            {t('adminAgents.newAgent')}
           </button>
           <button className="fc-btn-secondary" onClick={() => void loadAgents()} disabled={loading}>
             <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-            Atualizar
+            {t('common.refresh')}
           </button>
         </div>
       </div>
@@ -240,19 +239,18 @@ const AdminAgents: React.FC = () => {
       )}
 
       <div className="mb-5 rounded-xl border border-mint/20 bg-mint-soft/40 px-4 py-3 text-sm text-ink/70">
-        Perfis do sistema: Admin, Usuário e Usuário + IA. O assistente só usa dados financeiros do
-        usuário autenticado.
+        {t('adminAgents.infoBanner')}
       </div>
 
       {loading ? (
-        <div className="fc-empty">Carregando agentes…</div>
+        <div className="fc-empty">{t('adminAgents.loading')}</div>
       ) : agents.length === 0 ? (
         <div className="fc-empty">
           <Bot size={32} className="mb-3 text-mint" />
-          <p className="mb-4 text-ink/55">Nenhum agente configurado ainda</p>
+          <p className="mb-4 text-ink/55">{t('adminAgents.empty')}</p>
           <button className="fc-btn-primary" onClick={openCreate}>
             <Plus size={16} />
-            Criar primeiro agente
+            {t('adminAgents.createFirst')}
           </button>
         </div>
       ) : (
@@ -265,27 +263,27 @@ const AdminAgents: React.FC = () => {
                   <p className="mt-1 text-sm text-ink/55">
                     {agent.provider === 'claude' ? 'Claude' : 'OpenAI'} · {agent.model}
                   </p>
-                  <p className="mt-1 text-xs text-ink/40">Chave: {agent.apiKeyMasked}</p>
-                  <p className="mt-2 text-xs text-ink/55">Público: {audienceSummary(agent)}</p>
+                  <p className="mt-1 text-xs text-ink/40">{t('adminAgents.keyLabel', { masked: agent.apiKeyMasked })}</p>
+                  <p className="mt-2 text-xs text-ink/55">{t('adminAgents.audienceLabel', { summary: audienceSummary(agent, t) })}</p>
                 </div>
                 <ToggleSwitch
                   checked={agent.isEnabled}
                   disabled={saving}
                   onChange={() => void toggleEnabled(agent)}
-                  label={agent.isEnabled ? 'Ativo' : 'Inativo'}
+                  label={agent.isEnabled ? t('common.active') : t('common.inactive')}
                 />
               </div>
               <p className="mb-4 line-clamp-3 text-sm text-ink/60">{agent.systemPrompt}</p>
               <div className="flex flex-wrap gap-2">
                 <button className="fc-btn-secondary !px-3 !py-1.5 text-xs" onClick={() => openEdit(agent)}>
-                  <Pencil size={14} /> Editar
+                  <Pencil size={14} /> {t('adminAgents.edit')}
                 </button>
                 <button
                   className="fc-btn-secondary !px-3 !py-1.5 text-xs text-expense"
                   onClick={() => void deleteAgent(agent)}
                   disabled={saving}
                 >
-                  <Trash size={14} /> Excluir
+                  <Trash size={14} /> {t('adminAgents.delete')}
                 </button>
               </div>
             </div>
@@ -300,20 +298,20 @@ const AdminAgents: React.FC = () => {
               <div className="mb-4 flex items-start justify-between gap-3">
                 <div>
                   <h3 className="font-display text-lg font-semibold text-ink">
-                    {editing ? 'Editar agente' : 'Novo agente'}
+                    {editing ? t('adminAgents.modalEdit') : t('adminAgents.modalCreate')}
                   </h3>
                   <p className="mt-1 text-sm text-ink/55">
-                    Configure provedor, modelo, chave, prompt e público
+                    {t('adminAgents.modalSubtitle')}
                   </p>
                 </div>
-                <button className="fc-icon-btn" onClick={closeModal} aria-label="Fechar">
+                <button className="fc-icon-btn" onClick={closeModal} aria-label={t('common.close')}>
                   <X size={18} />
                 </button>
               </div>
 
               <div className="space-y-3">
                 <div>
-                  <label className="fc-label">Nome*</label>
+                  <label className="fc-label">{t('common.nameRequired')}</label>
                   <input
                     className="fc-input"
                     value={form.name}
@@ -322,7 +320,7 @@ const AdminAgents: React.FC = () => {
                 </div>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div>
-                    <label className="fc-label">Provedor*</label>
+                    <label className="fc-label">{t('adminAgents.provider')}</label>
                     <select
                       className="fc-input"
                       value={form.provider}
@@ -335,12 +333,12 @@ const AdminAgents: React.FC = () => {
                         }));
                       }}
                     >
-                      <option value="openai">OpenAI</option>
-                      <option value="claude">Claude (Anthropic)</option>
+                      <option value="openai">{t('adminAgents.providerOpenAI')}</option>
+                      <option value="claude">{t('adminAgents.providerClaude')}</option>
                     </select>
                   </div>
                   <div>
-                    <label className="fc-label">Modelo*</label>
+                    <label className="fc-label">{t('adminAgents.model')}</label>
                     <select
                       className="fc-input"
                       value={form.model}
@@ -356,7 +354,7 @@ const AdminAgents: React.FC = () => {
                 </div>
                 <div>
                   <label className="fc-label">
-                    Chave de API{editing ? ' (deixe em branco para manter)' : '*'}
+                    {editing ? t('adminAgents.apiKeyKeep') : t('adminAgents.apiKey')}
                   </label>
                   <input
                     type="password"
@@ -367,7 +365,7 @@ const AdminAgents: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="fc-label">Prompt do agente*</label>
+                  <label className="fc-label">{t('adminAgents.agentPrompt')}</label>
                   <textarea
                     className="fc-input min-h-[140px]"
                     value={form.systemPrompt}
@@ -378,13 +376,13 @@ const AdminAgents: React.FC = () => {
                 <ToggleSwitch
                   checked={form.isEnabled}
                   onChange={(checked) => setForm((f) => ({ ...f, isEnabled: checked }))}
-                  label="Habilitar agente"
+                  label={t('adminAgents.enableAgent')}
                   className="w-fit"
                 />
 
                 {form.isEnabled && (
                   <div className="space-y-3 rounded-xl border border-mist-line bg-mist/30 p-3">
-                    <p className="text-sm font-medium text-ink">Disponibilidade</p>
+                    <p className="text-sm font-medium text-ink">{t('adminAgents.availability')}</p>
                     <div className="grid gap-2">
                       <label className="fc-switch-field cursor-pointer">
                         <input
@@ -394,7 +392,7 @@ const AdminAgents: React.FC = () => {
                           checked={form.audienceMode === 'all'}
                           onChange={() => setForm((f) => ({ ...f, audienceMode: 'all' }))}
                         />
-                        <span className="text-sm text-ink/80">Todos os usuários</span>
+                        <span className="text-sm text-ink/80">{t('adminAgents.allUsers')}</span>
                       </label>
                       <label className="fc-switch-field cursor-pointer">
                         <input
@@ -404,19 +402,19 @@ const AdminAgents: React.FC = () => {
                           checked={form.audienceMode === 'roles'}
                           onChange={() => setForm((f) => ({ ...f, audienceMode: 'roles' }))}
                         />
-                        <span className="text-sm text-ink/80">Apenas perfis selecionados</span>
+                        <span className="text-sm text-ink/80">{t('adminAgents.selectedRoles')}</span>
                       </label>
                     </div>
 
                     {form.audienceMode === 'roles' && (
                       <div className="space-y-2 pt-1">
-                        <p className="text-xs text-ink/55">Marque os perfis com acesso ao chat</p>
+                        <p className="text-xs text-ink/55">{t('adminAgents.rolesHint')}</p>
                         {APP_ROLES.map((role) => (
                           <ToggleSwitch
                             key={role}
                             checked={form.enabledRoles.includes(role)}
                             onChange={() => toggleRole(role)}
-                            label={roleLabel(role)}
+                            label={roleLabel(role, t)}
                             className="w-full"
                           />
                         ))}
@@ -428,11 +426,11 @@ const AdminAgents: React.FC = () => {
 
               <div className="mt-5 flex justify-end gap-3">
                 <button className="fc-btn-secondary" onClick={closeModal} disabled={saving}>
-                  Cancelar
+                  {t('common.cancel')}
                 </button>
                 <button className="fc-btn-primary" onClick={() => void saveAgent()} disabled={saving}>
                   <Bot size={16} />
-                  {saving ? 'Salvando…' : editing ? 'Salvar' : 'Criar agente'}
+                  {saving ? t('common.savingEllipsis') : editing ? t('common.save') : t('adminAgents.createAgent')}
                 </button>
               </div>
             </div>

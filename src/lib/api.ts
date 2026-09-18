@@ -1,4 +1,7 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+// Empty in production so requests use same-origin /api (nginx proxies to the API).
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.PROD ? '' : 'http://localhost:3001');
 
 const TOKEN_KEY = 'fincontrol_token';
 

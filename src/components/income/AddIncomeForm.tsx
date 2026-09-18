@@ -5,6 +5,7 @@ import { Income } from '../../types';
 import { parseDateInput, toDateInputValue } from '../../utils/formatters';
 import RecurringEditScopeModal, { RecurringEditScope } from '../shared/RecurringEditScopeModal';
 import ToggleSwitch from '../ui/ToggleSwitch';
+import { useTranslation } from '../../i18n/LanguageProvider';
 
 const INCOME_CATEGORIES = [
   'Salário', 'Freelance', 'Investimentos', 'Aluguel',
@@ -17,6 +18,7 @@ interface AddIncomeFormProps {
 }
 
 const AddIncomeForm: React.FC<AddIncomeFormProps> = ({ onComplete, income }) => {
+  const { t, translateCategory } = useTranslation();
   const { addIncome, updateIncome, fetchIncomes } = useFinance();
 
   const [description, setDescription] = useState(income?.description || '');
@@ -108,7 +110,7 @@ const AddIncomeForm: React.FC<AddIncomeFormProps> = ({ onComplete, income }) => 
     setError('');
 
     if (!description || !amount || !date || !category) {
-      setError('Por favor, preencha todos os campos obrigatórios');
+      setError(t('common.requiredFields'));
       return;
     }
 
@@ -123,7 +125,7 @@ const AddIncomeForm: React.FC<AddIncomeFormProps> = ({ onComplete, income }) => 
       onComplete();
     } catch (err: unknown) {
       console.error('Erro ao adicionar receita:', err);
-      const message = err instanceof Error ? err.message : 'Erro ao salvar a receita. Por favor, tente novamente.';
+      const message = err instanceof Error ? err.message : t('income.saveError');
       setError(message);
     } finally {
       setIsSubmitting(false);
@@ -138,7 +140,7 @@ const AddIncomeForm: React.FC<AddIncomeFormProps> = ({ onComplete, income }) => 
       onComplete();
     } catch (err: unknown) {
       console.error('Erro ao atualizar receita recorrente:', err);
-      const message = err instanceof Error ? err.message : 'Erro ao salvar a receita. Por favor, tente novamente.';
+      const message = err instanceof Error ? err.message : t('income.saveError');
       setError(message);
     } finally {
       setIsSubmitting(false);
@@ -166,7 +168,7 @@ const AddIncomeForm: React.FC<AddIncomeFormProps> = ({ onComplete, income }) => 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <label htmlFor="description" className="fc-label">
-              Descrição*
+              {t('common.descriptionRequired')}
             </label>
             <input
               type="text"
@@ -180,11 +182,11 @@ const AddIncomeForm: React.FC<AddIncomeFormProps> = ({ onComplete, income }) => 
 
           <div>
             <label htmlFor="amount" className="fc-label">
-              Valor*
+              {t('common.amountRequired')}
             </label>
             <div className="relative">
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                <span className="text-sm text-ink/45">R$</span>
+                <span className="text-sm text-ink/45">{t('common.currencySymbol')}</span>
               </div>
               <input
                 type="number"
@@ -201,7 +203,7 @@ const AddIncomeForm: React.FC<AddIncomeFormProps> = ({ onComplete, income }) => 
 
           <div>
             <label htmlFor="date" className="fc-label">
-              Data*
+              {t('common.dateRequired')}
             </label>
             <div className="relative">
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -220,7 +222,7 @@ const AddIncomeForm: React.FC<AddIncomeFormProps> = ({ onComplete, income }) => 
 
           <div>
             <label htmlFor="category" className="fc-label">
-              Categoria*
+              {t('common.categoryRequired')}
             </label>
             <select
               id="category"
@@ -230,7 +232,7 @@ const AddIncomeForm: React.FC<AddIncomeFormProps> = ({ onComplete, income }) => 
               required
             >
               {INCOME_CATEGORIES.map((cat) => (
-                <option key={cat} value={cat}>{cat}</option>
+                <option key={cat} value={cat}>{translateCategory(cat)}</option>
               ))}
             </select>
           </div>
@@ -241,7 +243,7 @@ const AddIncomeForm: React.FC<AddIncomeFormProps> = ({ onComplete, income }) => 
           checked={isReceived}
           onChange={setIsReceived}
           disabled={isRecurring && !income?.id && recurringCount > 1}
-          label="Receita já foi recebida"
+          label={t('income.alreadyReceived')}
           className="w-fit"
         />
 
@@ -254,7 +256,7 @@ const AddIncomeForm: React.FC<AddIncomeFormProps> = ({ onComplete, income }) => 
               label={
                 <span className="inline-flex items-center gap-1.5">
                   <RefreshCw size={16} className="text-income" />
-                  Esta é uma receita recorrente
+                  {t('income.isRecurring')}
                 </span>
               }
               className="w-fit"
@@ -264,7 +266,7 @@ const AddIncomeForm: React.FC<AddIncomeFormProps> = ({ onComplete, income }) => 
               <div className="grid grid-cols-1 gap-4 rounded-xl border border-mist-line bg-mist/40 p-4 md:grid-cols-2">
                 <div>
                   <label htmlFor="recurringInterval" className="fc-label">
-                    Intervalo de Recorrência
+                    {t('income.recurringInterval')}
                   </label>
                   <select
                     id="recurringInterval"
@@ -274,15 +276,15 @@ const AddIncomeForm: React.FC<AddIncomeFormProps> = ({ onComplete, income }) => 
                       setRecurringInterval(e.target.value as 'weekly' | 'monthly' | 'yearly')
                     }
                   >
-                    <option value="weekly">Semanal</option>
-                    <option value="monthly">Mensal</option>
-                    <option value="yearly">Anual</option>
+                    <option value="weekly">{t('income.intervalWeekly')}</option>
+                    <option value="monthly">{t('income.intervalMonthly')}</option>
+                    <option value="yearly">{t('income.intervalYearly')}</option>
                   </select>
                 </div>
 
                 <div>
                   <label htmlFor="recurringCount" className="fc-label">
-                    Quantidade de Recorrências
+                    {t('income.recurringCount')}
                   </label>
                   <input
                     type="number"
@@ -306,14 +308,14 @@ const AddIncomeForm: React.FC<AddIncomeFormProps> = ({ onComplete, income }) => 
             onClick={onComplete}
             disabled={isSubmitting}
           >
-            Cancelar
+            {t('common.cancel')}
           </button>
           <button
             type="submit"
             className="fc-btn-income"
             disabled={isSubmitting}
           >
-            {isSubmitting ? 'Salvando...' : income?.id ? 'Atualizar Receita' : 'Adicionar Receita'}
+            {isSubmitting ? t('common.saving') : income?.id ? t('income.update') : t('income.add')}
           </button>
         </div>
       </form>

@@ -558,6 +558,7 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
           summary[cardId] = {
             totalAmount: 0,
             count: 0,
+            // Sentinel fallback; UI should display via t('common.unknownCard') if needed
             cardName: card?.name || 'Cartão Desconhecido',
           };
         }

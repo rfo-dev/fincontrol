@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Trash, X } from 'lucide-react';
+import { useTranslation } from '../../i18n/LanguageProvider';
 
 export type RecurringDeleteScope = 'single' | 'series';
 
@@ -19,11 +20,13 @@ const RecurringDeleteScopeModal: React.FC<RecurringDeleteScopeModalProps> = ({
   onSelect,
   onCancel,
 }) => {
-  const label = type === 'income' ? 'receita' : 'despesa';
+  const { t } = useTranslation();
+  const label =
+    type === 'income' ? t('recurring.incomeLabel') : t('recurring.expenseLabel');
   const seriesHint =
     type === 'income'
-      ? 'Remove somente as receitas ainda não recebidas da série.'
-      : 'Remove somente as despesas ainda não pagas da série.';
+      ? t('recurring.deleteSeriesHintIncome')
+      : t('recurring.deleteSeriesHintExpense');
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -61,12 +64,12 @@ const RecurringDeleteScopeModal: React.FC<RecurringDeleteScopeModalProps> = ({
             </div>
             <div>
               <h3 id="recurring-delete-scope-title" className="font-display text-lg font-semibold text-ink">
-                Excluir {label} recorrente
+                {t('recurring.deleteTitle', { label })}
               </h3>
               <p className="mt-1 text-sm text-ink/55">
                 {description
-                  ? `Deseja excluir somente "${description}" ou todas as recorrentes da série?`
-                  : `Deseja excluir somente esta ${label} ou todas as recorrentes da série?`}
+                  ? t('recurring.deleteBodyNamed', { description })
+                  : t('recurring.deleteBody', { label })}
               </p>
             </div>
           </div>
@@ -75,7 +78,7 @@ const RecurringDeleteScopeModal: React.FC<RecurringDeleteScopeModalProps> = ({
             className="fc-icon-btn shrink-0 text-ink/45 hover:bg-mist hover:text-ink"
             onClick={onCancel}
             disabled={isSubmitting}
-            aria-label="Fechar"
+            aria-label={t('common.close')}
           >
             <X size={18} />
           </button>
@@ -88,9 +91,9 @@ const RecurringDeleteScopeModal: React.FC<RecurringDeleteScopeModalProps> = ({
             onClick={() => onSelect('single')}
             disabled={isSubmitting}
           >
-            <div className="font-medium text-ink">Somente esta {label}</div>
+            <div className="font-medium text-ink">{t('recurring.onlyThis', { label })}</div>
             <div className="mt-1 text-sm text-ink/50">
-              Remove apenas o registro selecionado.
+              {t('recurring.onlyThisDeleteHint')}
             </div>
           </button>
 
@@ -100,7 +103,7 @@ const RecurringDeleteScopeModal: React.FC<RecurringDeleteScopeModalProps> = ({
             onClick={() => onSelect('series')}
             disabled={isSubmitting}
           >
-            <div className="font-medium text-ink">Todas as recorrentes</div>
+            <div className="font-medium text-ink">{t('recurring.allRecurring')}</div>
             <div className="mt-1 text-sm text-ink/55">{seriesHint}</div>
           </button>
 
@@ -110,7 +113,7 @@ const RecurringDeleteScopeModal: React.FC<RecurringDeleteScopeModalProps> = ({
             onClick={onCancel}
             disabled={isSubmitting}
           >
-            Cancelar
+            {t('common.cancel')}
           </button>
         </div>
       </div>

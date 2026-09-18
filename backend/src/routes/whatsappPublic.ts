@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import { getMetaSettings } from '../lib/whatsappMetaSettings.js';
 
 const router = Router();
 
@@ -6,14 +7,20 @@ const router = Router();
  * Webhook verification (GET) and inbound events (POST).
  * Public endpoints — no JWT.
  */
-router.get('/webhook', (req: Request, res: Response) => {
+router.get('/webhook', async (req: Request, res: Response) => {
   const mode = req.query['hub.mode'];
   const token = req.query['hub.verify_token'];
   const challenge = req.query['hub.challenge'];
-  const verifyToken = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || '';
 
-  if (mode === 'subscribe' && token && token === verifyToken) {
-    return res.status(200).send(String(challenge || ''));
+  try {
+    const settings = await getMetaSettings();
+    const verifyToken = settings.webhookVerifyToken;
+
+    if (mode === 'subscribe' && token && verifyToken && token === verifyToken) {
+      return res.status(200).send(String(challenge || ''));
+    }
+  } catch (error) {
+    console.error('WhatsApp webhook verify error:', error);
   }
 
   return res.sendStatus(403);

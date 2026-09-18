@@ -14,6 +14,8 @@ import {
   MessageCircle,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
+import { useTranslation } from '../../i18n/LanguageProvider';
+import LanguageSwitcher from './LanguageSwitcher';
 
 interface HeaderProps {
   activePage: string;
@@ -21,24 +23,29 @@ interface HeaderProps {
   adminMode?: boolean;
 }
 
-const navItems = [
-  { id: 'dashboard', label: 'Painel', icon: LayoutDashboard },
-  { id: 'income', label: 'Receitas', icon: TrendingUp },
-  { id: 'expenses', label: 'Despesas', icon: TrendingDown },
-  { id: 'credit-cards', label: 'Cartões', icon: CreditCard },
-  { id: 'relatorios', label: 'Relatórios', icon: PieChart },
-];
-
-const adminNavItems = [
-  { id: 'admin', label: 'Usuários', icon: Shield },
-  { id: 'admin-ai', label: 'Agentes IA', icon: Bot },
-  { id: 'admin-whatsapp', label: 'WhatsApp', icon: MessageCircle },
-];
-
-const Header: React.FC<HeaderProps> = ({ activePage, setActivePage, adminMode = false }) => {
+const Header: React.FC<HeaderProps> = ({
+  activePage,
+  setActivePage,
+  adminMode = false,
+}) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { signOut, user, enterAdminPortal, exitAdminPortal } = useAuthStore();
+  const { t } = useTranslation();
   const isAdmin = user?.role === 'admin';
+
+  const navItems = [
+    { id: 'dashboard', label: t('nav.dashboard'), icon: LayoutDashboard },
+    { id: 'income', label: t('nav.income'), icon: TrendingUp },
+    { id: 'expenses', label: t('nav.expenses'), icon: TrendingDown },
+    { id: 'credit-cards', label: t('nav.creditCards'), icon: CreditCard },
+    { id: 'relatorios', label: t('nav.reports'), icon: PieChart },
+  ];
+
+  const adminNavItems = [
+    { id: 'admin', label: t('nav.adminUsers'), icon: Shield },
+    { id: 'admin-ai', label: t('nav.adminAgents'), icon: Bot },
+    { id: 'admin-whatsapp', label: t('nav.adminWhatsApp'), icon: MessageCircle },
+  ];
 
   const navigateTo = (page: string) => {
     setActivePage(page);
@@ -49,7 +56,7 @@ const Header: React.FC<HeaderProps> = ({ activePage, setActivePage, adminMode = 
     try {
       await signOut();
     } catch (error) {
-      console.error('Erro ao sair:', error);
+      console.error('Sign out error:', error);
     }
   };
 
@@ -76,10 +83,10 @@ const Header: React.FC<HeaderProps> = ({ activePage, setActivePage, adminMode = 
           </div>
           <div>
             <h1 className="font-display text-xl font-bold leading-none tracking-tight">
-              {adminMode ? 'FinControl Admin' : 'FinControl'}
+              {adminMode ? t('app.brandAdmin') : t('app.brand')}
             </h1>
             <p className="mt-0.5 hidden text-[11px] text-white/50 sm:block">
-              {adminMode ? 'Gestão de usuários' : 'Controle financeiro pessoal'}
+              {adminMode ? t('app.adminTagline') : t('app.tagline')}
             </p>
           </div>
         </div>
@@ -117,6 +124,8 @@ const Header: React.FC<HeaderProps> = ({ activePage, setActivePage, adminMode = 
         </nav>
 
         <div className="flex items-center gap-2">
+          <LanguageSwitcher />
+
           <div className="hidden max-w-[180px] truncate text-right text-xs text-white/50 xl:block">
             {user?.name || user?.email}
           </div>
@@ -125,10 +134,10 @@ const Header: React.FC<HeaderProps> = ({ activePage, setActivePage, adminMode = 
             <button
               onClick={goToAdmin}
               className="hidden items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-mint-bright transition hover:bg-white/8 lg:inline-flex"
-              title="Portal Admin"
+              title={t('nav.adminPortal')}
             >
               <Shield size={16} />
-              <span>Admin</span>
+              <span>{t('nav.admin')}</span>
             </button>
           )}
 
@@ -138,7 +147,7 @@ const Header: React.FC<HeaderProps> = ({ activePage, setActivePage, adminMode = 
               className="hidden items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-white/80 transition hover:bg-white/8 lg:inline-flex"
             >
               <ArrowLeft size={16} />
-              <span>App</span>
+              <span>{t('nav.app')}</span>
             </button>
           )}
 
@@ -147,13 +156,13 @@ const Header: React.FC<HeaderProps> = ({ activePage, setActivePage, adminMode = 
             className="hidden items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-rose-200 transition hover:bg-rose-500/15 lg:inline-flex"
           >
             <LogOut size={16} />
-            <span>Sair</span>
+            <span>{t('nav.signOut')}</span>
           </button>
 
           <button
             className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 lg:hidden"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            aria-label={isMenuOpen ? 'Fechar menu' : 'Abrir menu'}
+            aria-label={isMenuOpen ? t('nav.closeMenu') : t('nav.openMenu')}
           >
             {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
@@ -163,13 +172,19 @@ const Header: React.FC<HeaderProps> = ({ activePage, setActivePage, adminMode = 
       {isMenuOpen && (
         <div className="border-t border-white/10 bg-ink-soft px-4 py-3 lg:hidden">
           <nav className="flex flex-col gap-1">
+            <div className="mb-2 px-1">
+              <LanguageSwitcher variant="menu" />
+            </div>
+
             {adminMode ? (
               adminNavItems.map(({ id, label, icon: Icon }) => (
                 <button
                   key={id}
                   onClick={() => navigateTo(id)}
                   className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition ${
-                    activePage === id ? 'bg-white/12 text-white' : 'text-white/70 hover:bg-white/8'
+                    activePage === id
+                      ? 'bg-white/12 text-white'
+                      : 'text-white/70 hover:bg-white/8'
                   }`}
                 >
                   <Icon size={18} />
@@ -182,7 +197,9 @@ const Header: React.FC<HeaderProps> = ({ activePage, setActivePage, adminMode = 
                   key={id}
                   onClick={() => navigateTo(id)}
                   className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition ${
-                    activePage === id ? 'bg-white/12 text-white' : 'text-white/70 hover:bg-white/8'
+                    activePage === id
+                      ? 'bg-white/12 text-white'
+                      : 'text-white/70 hover:bg-white/8'
                   }`}
                 >
                   <Icon size={18} />
@@ -197,7 +214,7 @@ const Header: React.FC<HeaderProps> = ({ activePage, setActivePage, adminMode = 
                 className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-mint-bright hover:bg-white/8"
               >
                 <Shield size={18} />
-                <span>Portal Admin</span>
+                <span>{t('nav.adminPortal')}</span>
               </button>
             )}
 
@@ -207,7 +224,7 @@ const Header: React.FC<HeaderProps> = ({ activePage, setActivePage, adminMode = 
                 className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white/80 hover:bg-white/8"
               >
                 <ArrowLeft size={18} />
-                <span>Voltar ao app</span>
+                <span>{t('nav.backToApp')}</span>
               </button>
             )}
 
@@ -216,7 +233,7 @@ const Header: React.FC<HeaderProps> = ({ activePage, setActivePage, adminMode = 
               className="mt-1 flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-rose-300 hover:bg-rose-500/10"
             >
               <LogOut size={18} />
-              <span>Sair</span>
+              <span>{t('nav.signOut')}</span>
             </button>
           </nav>
         </div>

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useFinance } from '../../context/FinanceContext';
 import { CreditCard } from 'lucide-react';
 import { CreditCard as CreditCardType } from '../../types';
+import { useTranslation } from '../../i18n/LanguageProvider';
 
 const CARD_COLORS = [
   '#0F766E',
@@ -24,6 +25,7 @@ interface AddCreditCardFormProps {
 }
 
 const AddCreditCardForm: React.FC<AddCreditCardFormProps> = ({ onComplete, creditCard }) => {
+  const { t } = useTranslation();
   const { addCreditCard, updateCreditCard } = useFinance();
 
   const [name, setName] = useState(creditCard?.name || '');
@@ -40,25 +42,25 @@ const AddCreditCardForm: React.FC<AddCreditCardFormProps> = ({ onComplete, credi
     setError('');
 
     if (!name || !due_day) {
-      setError('Por favor, preencha todos os campos obrigatórios');
+      setError(t('common.requiredFields'));
       return;
     }
 
     if (lastFour && !/^\d{4}$/.test(lastFour)) {
-      setError('O final do cartão deve ter exatamente 4 dígitos');
+      setError(t('creditCards.errorLastFour'));
       return;
     }
 
     const dueDayNum = parseInt(due_day);
     if (dueDayNum < 1 || dueDayNum > 31) {
-      setError('O dia de vencimento deve estar entre 1 e 31');
+      setError(t('creditCards.errorDueDay'));
       return;
     }
 
     if (closing_day) {
       const closingDayNum = parseInt(closing_day);
       if (closingDayNum < 1 || closingDayNum > 31) {
-        setError('O dia de fechamento deve estar entre 1 e 31');
+        setError(t('creditCards.errorClosingDay'));
         return;
       }
     }
@@ -84,7 +86,7 @@ const AddCreditCardForm: React.FC<AddCreditCardFormProps> = ({ onComplete, credi
       onComplete();
     } catch (err: unknown) {
       console.error('Erro ao adicionar cartão:', err);
-      const message = err instanceof Error ? err.message : 'Erro ao salvar o cartão. Por favor, tente novamente.';
+      const message = err instanceof Error ? err.message : t('creditCards.saveError');
       setError(message);
     } finally {
       setIsSubmitting(false);
@@ -102,7 +104,7 @@ const AddCreditCardForm: React.FC<AddCreditCardFormProps> = ({ onComplete, credi
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div>
           <label htmlFor="name" className="fc-label">
-            Nome do Cartão*
+            {t('creditCards.nameRequired')}
           </label>
           <div className="relative">
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -114,7 +116,7 @@ const AddCreditCardForm: React.FC<AddCreditCardFormProps> = ({ onComplete, credi
               className="fc-input pl-10"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="ex: Visa Premium"
+              placeholder={t('creditCards.namePlaceholder')}
               required
             />
           </div>
@@ -122,7 +124,7 @@ const AddCreditCardForm: React.FC<AddCreditCardFormProps> = ({ onComplete, credi
 
         <div>
           <label htmlFor="last_four" className="fc-label">
-            Final do Cartão
+            {t('creditCards.lastFour')}
           </label>
           <input
             type="text"
@@ -136,13 +138,13 @@ const AddCreditCardForm: React.FC<AddCreditCardFormProps> = ({ onComplete, credi
             placeholder="••••"
           />
           <p className="mt-1 text-xs text-ink/45">
-            Últimos 4 dígitos do cartão
+            {t('creditCards.lastFourHint')}
           </p>
         </div>
 
         <div>
           <label htmlFor="due_day" className="fc-label">
-            Dia do Vencimento*
+            {t('creditCards.dueDayRequired')}
           </label>
           <input
             type="number"
@@ -155,13 +157,13 @@ const AddCreditCardForm: React.FC<AddCreditCardFormProps> = ({ onComplete, credi
             required
           />
           <p className="mt-1 text-xs text-ink/45">
-            Dia do mês em que o pagamento vence (1-31)
+            {t('creditCards.dueDayHint')}
           </p>
         </div>
 
         <div>
           <label htmlFor="closing_day" className="fc-label">
-            Dia de Fechamento da Fatura
+            {t('creditCards.closingDayLabel')}
           </label>
           <input
             type="number"
@@ -171,20 +173,20 @@ const AddCreditCardForm: React.FC<AddCreditCardFormProps> = ({ onComplete, credi
             className="fc-input"
             value={closing_day}
             onChange={(e) => setClosingDay(e.target.value)}
-            placeholder="Opcional"
+            placeholder={t('common.optional')}
           />
           <p className="mt-1 text-xs text-ink/45">
-            Dia em que a fatura fecha (1-31)
+            {t('creditCards.closingDayHint')}
           </p>
         </div>
 
         <div>
           <label htmlFor="credit_limit" className="fc-label">
-            Limite de Crédito (Opcional)
+            {t('creditCards.creditLimitOptional')}
           </label>
           <div className="relative">
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-              <span className="text-sm text-ink/45">R$</span>
+              <span className="text-sm text-ink/45">{t('common.currencySymbol')}</span>
             </div>
             <input
               type="number"
@@ -199,7 +201,7 @@ const AddCreditCardForm: React.FC<AddCreditCardFormProps> = ({ onComplete, credi
         </div>
 
         <div className="md:col-span-2">
-          <label className="fc-label">Cor do Cartão</label>
+          <label className="fc-label">{t('creditCards.cardColor')}</label>
           <div className="flex flex-wrap gap-2">
             {CARD_COLORS.map((cardColor) => (
               <button
@@ -210,7 +212,7 @@ const AddCreditCardForm: React.FC<AddCreditCardFormProps> = ({ onComplete, credi
                 }`}
                 style={{ backgroundColor: cardColor }}
                 onClick={() => setColor(cardColor)}
-                aria-label={`Selecionar cor ${cardColor}`}
+                aria-label={t('creditCards.selectColor', { color: cardColor })}
               />
             ))}
           </div>
@@ -224,14 +226,14 @@ const AddCreditCardForm: React.FC<AddCreditCardFormProps> = ({ onComplete, credi
           onClick={onComplete}
           disabled={isSubmitting}
         >
-          Cancelar
+          {t('common.cancel')}
         </button>
         <button
           type="submit"
           className="fc-btn-primary"
           disabled={isSubmitting}
         >
-          {isSubmitting ? 'Salvando...' : creditCard?.id ? 'Atualizar Cartão' : 'Adicionar Cartão'}
+          {isSubmitting ? t('common.saving') : creditCard?.id ? t('creditCards.update') : t('creditCards.add')}
         </button>
       </div>
     </form>

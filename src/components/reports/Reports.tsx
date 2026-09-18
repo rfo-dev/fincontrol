@@ -4,13 +4,11 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
 import { getMonth, getYear } from 'date-fns';
-
-const meses = [
-  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
-];
+import { formatCurrency } from '../../utils/formatters';
+import { useTranslation } from '../../i18n/LanguageProvider';
 
 const Reports: React.FC = () => {
+  const { t, months, translateCategory, dateLocale } = useTranslation();
   const { expenses, incomes } = useFinance();
 
   const dataByMonth = useMemo(() => {
@@ -33,13 +31,13 @@ const Reports: React.FC = () => {
     return Object.entries(monthlyMap).map(([key, value]) => {
       const [year, month] = key.split('-').map(Number);
       return {
-        name: meses[month],
+        name: months[month],
         ...value,
         year,
         month: month + 1
       };
     }).sort((a, b) => a.year !== b.year ? a.year - b.year : a.month - b.month);
-  }, [expenses, incomes]);
+  }, [expenses, incomes, months]);
 
   const availableYears = useMemo(() => {
     const allYears = new Set([
@@ -90,13 +88,13 @@ const Reports: React.FC = () => {
     <div className="fc-page">
       <div className="fc-page-header">
         <div>
-          <h2 className="fc-title">Gráfico de Endividamento</h2>
-          <p className="fc-subtitle">Evolução mensal de receitas e despesas</p>
+          <h2 className="fc-title">{t('reports.chartTitle')}</h2>
+          <p className="fc-subtitle">{t('reports.chartSubtitle')}</p>
         </div>
 
         <div className="fc-toolbar">
           <div className="w-full sm:w-40">
-            <label htmlFor="reports-year" className="fc-label">Ano</label>
+            <label htmlFor="reports-year" className="fc-label">{t('common.year')}</label>
             <select
               id="reports-year"
               className="fc-input"
@@ -137,8 +135,8 @@ const Reports: React.FC = () => {
                 }}
               />
               <Legend />
-              <Line type="monotone" dataKey="income" stroke="#059669" strokeWidth={2.5} name="Receitas" dot={{ r: 3, fill: '#059669' }} activeDot={{ r: 5 }} />
-              <Line type="monotone" dataKey="expense" stroke="#E11D48" strokeWidth={2.5} name="Despesas" dot={{ r: 3, fill: '#E11D48' }} activeDot={{ r: 5 }} />
+              <Line type="monotone" dataKey="income" stroke="#059669" strokeWidth={2.5} name={t('reports.incomeSeries')} dot={{ r: 3, fill: '#059669' }} activeDot={{ r: 5 }} />
+              <Line type="monotone" dataKey="expense" stroke="#E11D48" strokeWidth={2.5} name={t('reports.expenseSeries')} dot={{ r: 3, fill: '#E11D48' }} activeDot={{ r: 5 }} />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -146,20 +144,20 @@ const Reports: React.FC = () => {
 
       <div className="fc-page-header">
         <div>
-          <h2 className="fc-title">Balanço Financeiro</h2>
-          <p className="fc-subtitle">Resumo de ativos e passivos por categoria</p>
+          <h2 className="fc-title">{t('reports.balanceTitle')}</h2>
+          <p className="fc-subtitle">{t('reports.balanceSubtitle')}</p>
         </div>
 
         <div className="fc-toolbar">
           <div className="w-full sm:w-48">
-            <label htmlFor="reports-month" className="fc-label">Mês</label>
+            <label htmlFor="reports-month" className="fc-label">{t('common.month')}</label>
             <select
               id="reports-month"
               className="fc-input"
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
             >
-              {meses.map((nome, idx) => (
+              {months.map((nome, idx) => (
                 <option key={idx} value={idx + 1}>{nome}</option>
               ))}
             </select>
@@ -169,53 +167,53 @@ const Reports: React.FC = () => {
 
       <div className="fc-card mx-auto max-w-3xl p-5 sm:p-6">
         <h3 className="mb-5 text-center font-display text-lg font-semibold tracking-tight text-ink sm:text-xl">
-          Balanço — {meses[selectedMonth - 1]} / {selectedYear}
+          {t('reports.balanceHeading', { month: months[selectedMonth - 1], year: selectedYear })}
         </h3>
 
         <div className="grid grid-cols-1 gap-6 border-y border-mist-line py-5 sm:grid-cols-2 sm:gap-8">
           <div>
             <div className="mb-3 flex items-center gap-2">
-              <span className="fc-badge-success">Ativo</span>
+              <span className="fc-badge-success">{t('reports.asset')}</span>
             </div>
             <div className="space-y-2">
               {receitasPorCategoria.map((item) => (
                 <div key={item.categoria} className="flex items-center justify-between gap-3 text-sm">
-                  <span className="truncate text-ink/70">{item.categoria}</span>
+                  <span className="truncate text-ink/70">{translateCategory(item.categoria)}</span>
                   <span className="shrink-0 font-medium text-income">
-                    {item.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    {formatCurrency(item.valor, dateLocale)}
                   </span>
                 </div>
               ))}
             </div>
             <p className="mt-4 border-t border-mist-line pt-3 text-sm font-bold text-income">
-              Total: {balance.income.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              {t('common.totalColon')} {formatCurrency(balance.income, dateLocale)}
             </p>
           </div>
 
           <div>
             <div className="mb-3 flex items-center gap-2">
-              <span className="fc-badge-danger">Passivo</span>
+              <span className="fc-badge-danger">{t('reports.liability')}</span>
             </div>
             <div className="space-y-2">
               {despesasPorCategoria.map((item) => (
                 <div key={item.categoria} className="flex items-center justify-between gap-3 text-sm">
-                  <span className="truncate text-ink/70">{item.categoria}</span>
+                  <span className="truncate text-ink/70">{translateCategory(item.categoria)}</span>
                   <span className="shrink-0 font-medium text-expense">
-                    {item.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    {formatCurrency(item.valor, dateLocale)}
                   </span>
                 </div>
               ))}
             </div>
             <p className="mt-4 border-t border-mist-line pt-3 text-sm font-bold text-expense">
-              Total: {balance.expense.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              {t('common.totalColon')} {formatCurrency(balance.expense, dateLocale)}
             </p>
           </div>
         </div>
 
         <div className="mt-2 border-t border-mist-line pt-4 text-right">
-          <p className="text-sm font-medium text-ink/60">Resultado Líquido</p>
+          <p className="text-sm font-medium text-ink/60">{t('reports.netResult')}</p>
           <p className={`mt-1 font-display text-2xl font-bold tracking-tight ${balance.balance >= 0 ? 'text-income' : 'text-expense'}`}>
-            {balance.balance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+            {formatCurrency(balance.balance, dateLocale)}
           </p>
         </div>
       </div>

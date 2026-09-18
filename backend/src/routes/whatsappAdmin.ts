@@ -5,18 +5,14 @@ import { prisma } from '../lib/prisma.js';
 import { encryptSecret, decryptSecret, maskSecret } from '../lib/crypto.js';
 import { AuthRequest } from '../middleware/auth.js';
 import { adminAuth } from '../middleware/admin.js';
+import {
+  getMetaSettings,
+  graphBase,
+  publicMetaSettings,
+  saveMetaSettings,
+} from '../lib/whatsappMetaSettings.js';
 
 const router = Router();
-
-const GRAPH_VERSION = process.env.META_GRAPH_API_VERSION || 'v21.0';
-const GRAPH_BASE = `https://graph.facebook.com/${GRAPH_VERSION}`;
-
-function metaEnv() {
-  const appId = process.env.META_APP_ID || '';
-  const appSecret = process.env.META_APP_SECRET || '';
-  const configId = process.env.META_EMBEDDED_SIGNUP_CONFIG_ID || '';
-  return { appId, appSecret, configId };
-}
 
 function mapConnection(row: {
   id: string;
@@ -53,27 +49,76 @@ function mapConnection(row: {
   };
 }
 
+function callbackUrls() {
+  const app = (
+    process.env.PUBLIC_APP_URL || 'https://financial.cubotechbr.com.br'
+  ).replace(/\/$/, '');
+  const api = (
+    process.env.API_PUBLIC_URL ||
+    process.env.PUBLIC_APP_URL ||
+    'https://financial.cubotechbr.com.br'
+  ).replace(/\/$/, '');
+
+  return {
+    appDomain: app,
+    oauthRedirect: `${app}/`,
+    webhook: `${api}/api/whatsapp/webhook`,
+    deauthorize: `${api}/api/whatsapp/deauthorize`,
+    dataDeletion: `${api}/api/whatsapp/data-deletion`,
+  };
+}
+
 router.get('/config', ...adminAuth, async (_req: AuthRequest, res) => {
-  const { appId, configId, appSecret } = metaEnv();
+  const settings = await getMetaSettings();
   const active = await prisma.whatsAppConnection.findFirst({
     where: { isActive: true },
     orderBy: { updatedAt: 'desc' },
   });
 
   return res.json({
-    configured: Boolean(appId && configId && appSecret),
-    appId,
-    configId,
-    graphVersion: GRAPH_VERSION,
+    ...publicMetaSettings(settings),
     connection: active ? mapConnection(active) : null,
-    callbackUrls: {
-      appDomain: process.env.PUBLIC_APP_URL || 'https://financial.cubotechbr.com.br',
-      oauthRedirect: `${(process.env.PUBLIC_APP_URL || 'https://financial.cubotechbr.com.br').replace(/\/$/, '')}/`,
-      webhook: `${(process.env.API_PUBLIC_URL || process.env.PUBLIC_APP_URL || 'https://financial.cubotechbr.com.br').replace(/\/$/, '')}/api/whatsapp/webhook`,
-      deauthorize: `${(process.env.API_PUBLIC_URL || process.env.PUBLIC_APP_URL || 'https://financial.cubotechbr.com.br').replace(/\/$/, '')}/api/whatsapp/deauthorize`,
-      dataDeletion: `${(process.env.API_PUBLIC_URL || process.env.PUBLIC_APP_URL || 'https://financial.cubotechbr.com.br').replace(/\/$/, '')}/api/whatsapp/data-deletion`,
-    },
+    callbackUrls: callbackUrls(),
   });
+});
+
+const settingsSchema = z.object({
+  appId: z.string().min(1, 'App ID é obrigatório'),
+  configId: z.string().min(1, 'Config ID do Embedded Signup é obrigatório'),
+  graphVersion: z.string().optional(),
+  webhookVerifyToken: z.string().optional(),
+  appSecret: z.string().optional(),
+});
+
+router.put('/settings', ...adminAuth, async (req: AuthRequest, res) => {
+  try {
+    const parsed = settingsSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({
+        error: parsed.error.issues[0]?.message || 'Dados inválidos',
+      });
+    }
+
+    const current = await getMetaSettings();
+    if (!parsed.data.appSecret?.trim() && !current.hasAppSecret) {
+      return res.status(400).json({
+        error: 'Informe o App Secret da Meta na primeira configuração',
+      });
+    }
+
+    const saved = await saveMetaSettings({
+      appId: parsed.data.appId,
+      configId: parsed.data.configId,
+      graphVersion: parsed.data.graphVersion,
+      webhookVerifyToken: parsed.data.webhookVerifyToken,
+      appSecret: parsed.data.appSecret,
+    });
+
+    return res.json(publicMetaSettings(saved));
+  } catch (error) {
+    console.error('WhatsApp settings save error:', error);
+    return res.status(500).json({ error: 'Falha ao salvar configurações Meta' });
+  }
 });
 
 router.get('/connection', ...adminAuth, async (_req: AuthRequest, res) => {
@@ -95,10 +140,11 @@ const completeSchema = z.object({
 
 router.post('/embedded-signup/complete', ...adminAuth, async (req: AuthRequest, res) => {
   try {
-    const { appId, appSecret } = metaEnv();
+    const settings = await getMetaSettings();
+    const { appId, appSecret, graphVersion } = settings;
     if (!appId || !appSecret) {
       return res.status(503).json({
-        error: 'META_APP_ID e META_APP_SECRET não configurados no servidor',
+        error: 'Configure App ID e App Secret no menu WhatsApp antes de conectar',
       });
     }
 
@@ -107,7 +153,8 @@ router.post('/embedded-signup/complete', ...adminAuth, async (req: AuthRequest, 
       return res.status(400).json({ error: 'Código de autorização inválido' });
     }
 
-    const tokenUrl = new URL(`${GRAPH_BASE}/oauth/access_token`);
+    const base = graphBase(graphVersion);
+    const tokenUrl = new URL(`${base}/oauth/access_token`);
     tokenUrl.searchParams.set('client_id', appId);
     tokenUrl.searchParams.set('client_secret', appSecret);
     tokenUrl.searchParams.set('code', parsed.data.code);
@@ -131,11 +178,10 @@ router.post('/embedded-signup/complete', ...adminAuth, async (req: AuthRequest, 
     let displayPhone = parsed.data.displayPhone || null;
     let businessId = parsed.data.businessId || null;
 
-    // Fallback: discover WABA/phone from debug_token / owned accounts
     if (!wabaId || !phoneNumberId) {
       try {
         const appToken = `${appId}|${appSecret}`;
-        const debugUrl = new URL(`${GRAPH_BASE}/debug_token`);
+        const debugUrl = new URL(`${base}/debug_token`);
         debugUrl.searchParams.set('input_token', accessToken);
         debugUrl.searchParams.set('access_token', appToken);
         const debugRes = await fetch(debugUrl.toString());
@@ -158,7 +204,7 @@ router.post('/embedded-signup/complete', ...adminAuth, async (req: AuthRequest, 
 
     if (wabaId && !phoneNumberId) {
       try {
-        const phonesUrl = new URL(`${GRAPH_BASE}/${wabaId}/phone_numbers`);
+        const phonesUrl = new URL(`${base}/${wabaId}/phone_numbers`);
         phonesUrl.searchParams.set('access_token', accessToken);
         const phonesRes = await fetch(phonesUrl.toString());
         const phonesJson = (await phonesRes.json()) as {
@@ -176,7 +222,7 @@ router.post('/embedded-signup/complete', ...adminAuth, async (req: AuthRequest, 
 
     if (wabaId) {
       try {
-        await fetch(`${GRAPH_BASE}/${wabaId}/subscribed_apps`, {
+        await fetch(`${base}/${wabaId}/subscribed_apps`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ access_token: accessToken }),

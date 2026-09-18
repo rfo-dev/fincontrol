@@ -3,6 +3,7 @@ import { Bot, MessageCircle, Paperclip, Send, Trash2, X } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useFinance } from '../../context/FinanceContext';
 import ChatMessageContent from './ChatMessageContent';
+import { useTranslation } from '../../i18n/LanguageProvider';
 
 type ChatMessage = {
   id: string;
@@ -32,15 +33,16 @@ function fileToBase64(file: File): Promise<string> {
       const idx = result.indexOf('base64,');
       resolve(idx >= 0 ? result.slice(idx + 7) : result);
     };
-    reader.onerror = () => reject(new Error('Falha ao ler o arquivo'));
+    reader.onerror = () => reject(new Error('READ_FILE_FAILED'));
     reader.readAsDataURL(file);
   });
 }
 
 const AiChatWidget: React.FC = () => {
+  const { t } = useTranslation();
   const { fetchExpenses } = useFinance();
   const [enabled, setEnabled] = useState(false);
-  const [agentName, setAgentName] = useState('Assistente');
+  const [agentName, setAgentName] = useState('');
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -55,7 +57,7 @@ const AiChatWidget: React.FC = () => {
       try {
         const status = await api<{ enabled: boolean; name: string | null }>('/api/ai/status');
         setEnabled(status.enabled);
-        setAgentName(status.name || 'Assistente');
+        setAgentName(status.name || t('ai.defaultAgentName'));
       } catch {
         setEnabled(false);
       }
@@ -93,11 +95,11 @@ const AiChatWidget: React.FC = () => {
   const onPickFile = async (file: File | null) => {
     if (!file) return;
     if (!ACCEPTED_TYPES.includes(file.type)) {
-      setError('Envie imagem (JPG, PNG, WEBP) ou PDF do comprovante.');
+      setError(t('ai.errorFileType'));
       return;
     }
     if (file.size > MAX_ATTACHMENT_BYTES) {
-      setError('Arquivo muito grande (máx. 4 MB).');
+      setError(t('ai.errorFileSize'));
       return;
     }
 
@@ -112,7 +114,11 @@ const AiChatWidget: React.FC = () => {
         previewUrl: URL.createObjectURL(file),
       });
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Falha ao anexar arquivo');
+      if (err instanceof Error && err.message === 'READ_FILE_FAILED') {
+        setError(t('ai.errorReadFile'));
+      } else {
+        setError(err instanceof Error ? err.message : t('ai.errorAttach'));
+      }
     }
   };
 
@@ -129,7 +135,7 @@ const AiChatWidget: React.FC = () => {
     const tempId = `temp-${Date.now()}`;
     const tempContent =
       text ||
-      (pending ? 'Analise o comprovante anexado e ajude a cadastrar a despesa.' : '');
+      (pending ? t('ai.defaultAttachmentPrompt') : '');
 
     setMessages((prev) => [
       ...prev,
@@ -162,7 +168,7 @@ const AiChatWidget: React.FC = () => {
       setMessages((prev) => [...prev, reply]);
       await fetchExpenses();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Falha ao enviar mensagem');
+      setError(err instanceof Error ? err.message : t('ai.errorSend'));
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
       setInput(text);
       if (pending) {
@@ -179,7 +185,7 @@ const AiChatWidget: React.FC = () => {
       setMessages([]);
       clearAttachment();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Falha ao limpar conversa');
+      setError(err instanceof Error ? err.message : t('ai.errorClear'));
     }
   };
 
@@ -191,7 +197,7 @@ const AiChatWidget: React.FC = () => {
           className="fixed bottom-5 right-5 z-50 inline-flex items-center gap-2 rounded-full bg-ink px-4 py-3 text-sm font-semibold text-white shadow-lift transition hover:bg-ink-soft"
         >
           <MessageCircle size={18} />
-          Chat IA
+          {t('ai.chatButton')}
         </button>
       )}
 
@@ -201,22 +207,22 @@ const AiChatWidget: React.FC = () => {
             <div className="flex items-center gap-2">
               <Bot size={18} />
               <div>
-                <p className="text-sm font-semibold">{agentName}</p>
-                <p className="text-[11px] text-white/60">Contas · comprovantes</p>
+                <p className="text-sm font-semibold">{agentName || t('ai.defaultAgentName')}</p>
+                <p className="text-[11px] text-white/60">{t('ai.subtitle')}</p>
               </div>
             </div>
             <div className="flex items-center gap-1">
               <button
                 className="fc-icon-btn bg-white/10 text-white hover:bg-white/20"
                 onClick={() => void clearChat()}
-                title="Limpar conversa"
+                title={t('ai.clearChat')}
               >
                 <Trash2 size={16} />
               </button>
               <button
                 className="fc-icon-btn bg-white/10 text-white hover:bg-white/20"
                 onClick={() => setOpen(false)}
-                title="Fechar"
+                title={t('ai.close')}
               >
                 <X size={16} />
               </button>
@@ -226,8 +232,7 @@ const AiChatWidget: React.FC = () => {
           <div ref={listRef} className="flex-1 space-y-3 overflow-y-auto bg-mist/40 p-3">
             {messages.length === 0 && (
               <div className="rounded-xl border border-dashed border-mist-line bg-white px-3 py-4 text-sm text-ink/55">
-                Pergunte sobre totais ou anexe um cupom/comprovante para o assistente cadastrar a
-                despesa (com confirmação).
+                {t('ai.emptyHint')}
               </div>
             )}
             {messages.map((msg) => (
@@ -244,7 +249,7 @@ const AiChatWidget: React.FC = () => {
                     {msg.previewUrl && msg.attachmentMime?.startsWith('image/') ? (
                       <img
                         src={msg.previewUrl}
-                        alt={msg.attachmentName || 'Comprovante'}
+                        alt={msg.attachmentName || t('ai.attachmentAlt')}
                         className="max-h-40 w-full rounded-xl object-cover"
                       />
                     ) : (
@@ -255,7 +260,7 @@ const AiChatWidget: React.FC = () => {
                             : 'bg-mist text-ink/70'
                         }`}
                       >
-                        Anexo: {msg.attachmentName || 'comprovante'}
+                        {t('ai.attachmentLabel', { name: msg.attachmentName || t('ai.attachmentFallback') })}
                       </div>
                     )}
                   </div>
@@ -268,7 +273,7 @@ const AiChatWidget: React.FC = () => {
             ))}
             {sending && (
               <div className="mr-auto rounded-2xl bg-white px-3 py-2 text-sm text-ink/50 ring-1 ring-mist-line">
-                Analisando…
+                {t('ai.analyzing')}
               </div>
             )}
           </div>
@@ -289,18 +294,18 @@ const AiChatWidget: React.FC = () => {
                 />
               ) : (
                 <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-white text-[10px] font-semibold text-ink/60 ring-1 ring-mist-line">
-                  PDF
+                  {t('ai.pdf')}
                 </div>
               )}
               <div className="min-w-0 flex-1">
                 <p className="truncate text-xs font-medium text-ink">{attachment.fileName}</p>
-                <p className="text-[11px] text-ink/50">Pronto para enviar</p>
+                <p className="text-[11px] text-ink/50">{t('ai.readyToSend')}</p>
               </div>
               <button
                 type="button"
                 className="fc-icon-btn"
                 onClick={clearAttachment}
-                title="Remover anexo"
+                title={t('ai.removeAttachment')}
               >
                 <X size={16} />
               </button>
@@ -326,7 +331,7 @@ const AiChatWidget: React.FC = () => {
               className="fc-icon-btn shrink-0"
               onClick={() => fileInputRef.current?.click()}
               disabled={sending}
-              title="Anexar comprovante"
+              title={t('ai.attachReceipt')}
             >
               <Paperclip size={16} />
             </button>
@@ -335,14 +340,14 @@ const AiChatWidget: React.FC = () => {
               rows={2}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ex.: Cadastre este cupom"
+              placeholder={t('ai.placeholder')}
               disabled={sending}
             />
             <button
               type="submit"
               className="fc-btn-primary !px-3"
               disabled={sending || (!input.trim() && !attachment)}
-              title="Enviar"
+              title={t('ai.send')}
             >
               <Send size={16} />
             </button>

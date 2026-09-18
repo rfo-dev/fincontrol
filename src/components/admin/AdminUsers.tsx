@@ -18,6 +18,7 @@ import { useAuthStore } from '../../store/authStore';
 import { formatDate } from '../../utils/formatters';
 import { AppRole, normalizeAppRole, roleLabel } from '../../lib/roles';
 import ToggleSwitch from '../ui/ToggleSwitch';
+import { useTranslation } from '../../i18n/LanguageProvider';
 
 type AdminUser = {
   id: string;
@@ -30,6 +31,7 @@ type AdminUser = {
 };
 
 const AdminUsers: React.FC = () => {
+  const { t, dateLocale } = useTranslation();
   const { user: currentUser } = useAuthStore();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,7 +66,7 @@ const AdminUsers: React.FC = () => {
       const data = await api<AdminUser[]>('/api/admin/users');
       setUsers(data);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Falha ao carregar usuários';
+      const message = err instanceof Error ? err.message : t('adminUsers.errorLoad');
       setError(message);
     } finally {
       setLoading(false);
@@ -101,19 +103,19 @@ const AdminUsers: React.FC = () => {
 
   const saveCreate = async () => {
     if (createForm.name.trim().length < 2) {
-      setError('Nome completo é obrigatório');
+      setError(t('adminUsers.errorFullName'));
       return;
     }
     if (!createForm.email.trim()) {
-      setError('E-mail é obrigatório');
+      setError(t('adminUsers.errorEmail'));
       return;
     }
     if (createForm.password.length < 6) {
-      setError('A senha deve ter pelo menos 6 caracteres');
+      setError(t('adminUsers.errorPasswordLength'));
       return;
     }
     if (createForm.password !== createForm.confirmPassword) {
-      setError('As senhas não coincidem');
+      setError(t('adminUsers.errorPasswordMismatch'));
       return;
     }
 
@@ -133,7 +135,7 @@ const AdminUsers: React.FC = () => {
       setUsers((prev) => [created, ...prev]);
       setIsCreating(false);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Falha ao criar usuário';
+      const message = err instanceof Error ? err.message : t('adminUsers.errorCreate');
       setError(message);
     } finally {
       setSaving(false);
@@ -153,7 +155,7 @@ const AdminUsers: React.FC = () => {
   const saveEdit = async () => {
     if (!editingUser) return;
     if (editForm.name.trim().length < 2) {
-      setError('Nome completo é obrigatório');
+      setError(t('adminUsers.errorFullName'));
       return;
     }
 
@@ -172,7 +174,7 @@ const AdminUsers: React.FC = () => {
       setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
       setEditingUser(null);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Falha ao atualizar usuário';
+      const message = err instanceof Error ? err.message : t('adminUsers.errorUpdate');
       setError(message);
     } finally {
       setSaving(false);
@@ -181,7 +183,7 @@ const AdminUsers: React.FC = () => {
 
   const toggleActive = async (user: AdminUser) => {
     if (user.id === currentUser?.id) {
-      setError('Você não pode desabilitar a própria conta');
+      setError(t('adminUsers.errorSelfDisable'));
       return;
     }
 
@@ -194,7 +196,7 @@ const AdminUsers: React.FC = () => {
       });
       setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Falha ao atualizar status';
+      const message = err instanceof Error ? err.message : t('adminUsers.errorStatus');
       setError(message);
     } finally {
       setSaving(false);
@@ -204,11 +206,11 @@ const AdminUsers: React.FC = () => {
   const savePasswordReset = async () => {
     if (!resetUser) return;
     if (newPassword.length < 6) {
-      setError('A nova senha deve ter pelo menos 6 caracteres');
+      setError(t('adminUsers.errorNewPasswordLength'));
       return;
     }
     if (newPassword !== confirmPassword) {
-      setError('As senhas não coincidem');
+      setError(t('adminUsers.errorPasswordMismatch'));
       return;
     }
 
@@ -223,7 +225,7 @@ const AdminUsers: React.FC = () => {
       setNewPassword('');
       setConfirmPassword('');
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Falha ao resetar senha';
+      const message = err instanceof Error ? err.message : t('adminUsers.errorReset');
       setError(message);
     } finally {
       setSaving(false);
@@ -234,17 +236,17 @@ const AdminUsers: React.FC = () => {
     <div className="fc-page">
       <div className="fc-page-header">
         <div>
-          <h2 className="fc-title">Portal Admin</h2>
-          <p className="fc-subtitle">Gerencie usuários, acessos e status das contas</p>
+          <h2 className="fc-title">{t('adminUsers.title')}</h2>
+          <p className="fc-subtitle">{t('adminUsers.subtitle')}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button className="fc-btn-primary" onClick={openCreate}>
             <Plus size={16} />
-            Novo usuário
+            {t('adminUsers.newUser')}
           </button>
           <button className="fc-btn-secondary" onClick={() => void loadUsers()} disabled={loading}>
             <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-            Atualizar
+            {t('common.refresh')}
           </button>
         </div>
       </div>
@@ -257,7 +259,7 @@ const AdminUsers: React.FC = () => {
       )}
 
       <div className="fc-card mb-5 p-4">
-        <label className="fc-label" htmlFor="admin-user-search">Buscar usuários</label>
+        <label className="fc-label" htmlFor="admin-user-search">{t('adminUsers.searchLabel')}</label>
         <div className="relative">
           <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink/35" />
           <input
@@ -265,15 +267,15 @@ const AdminUsers: React.FC = () => {
             className="fc-input pl-10"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Nome, email ou perfil..."
+            placeholder={t('adminUsers.searchPlaceholder')}
           />
         </div>
       </div>
 
       {loading ? (
-        <div className="fc-empty">Carregando usuários…</div>
+        <div className="fc-empty">{t('adminUsers.loading')}</div>
       ) : filteredUsers.length === 0 ? (
-        <div className="fc-empty">Nenhum usuário encontrado</div>
+        <div className="fc-empty">{t('adminUsers.empty')}</div>
       ) : (
         <>
           <div className="fc-desktop-table">
@@ -282,18 +284,18 @@ const AdminUsers: React.FC = () => {
                 <table className="fc-table">
                   <thead>
                     <tr>
-                      <th>Nome</th>
-                      <th>E-mail</th>
-                      <th>Perfil</th>
-                      <th>Status</th>
-                      <th>Cadastro</th>
-                      <th className="text-center">Ações</th>
+                      <th>{t('adminUsers.name')}</th>
+                      <th>{t('adminUsers.email')}</th>
+                      <th>{t('adminUsers.role')}</th>
+                      <th>{t('adminUsers.status')}</th>
+                      <th>{t('adminUsers.registered')}</th>
+                      <th className="text-center">{t('common.actions')}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredUsers.map((user) => (
                       <tr key={user.id}>
-                        <td className="font-medium text-ink">{user.name || '—'}</td>
+                        <td className="font-medium text-ink">{user.name || t('common.emDash')}</td>
                         <td>{user.email}</td>
                         <td>
                           <span
@@ -305,27 +307,27 @@ const AdminUsers: React.FC = () => {
                                   : 'fc-badge-warn'
                             }
                           >
-                            {roleLabel(user.role)}
+                            {roleLabel(user.role, t)}
                           </span>
                         </td>
                         <td>
                           <span className={user.isActive ? 'fc-badge-success' : 'fc-badge-danger'}>
-                            {user.isActive ? 'Ativo' : 'Desabilitado'}
+                            {user.isActive ? t('adminUsers.active') : t('adminUsers.disabled')}
                           </span>
                         </td>
-                        <td>{formatDate(user.createdAt)}</td>
+                        <td>{formatDate(user.createdAt, dateLocale)}</td>
                         <td>
                           <div className="flex justify-center gap-2">
                             <button
                               className="fc-icon-btn bg-mint-soft text-mint hover:bg-mint hover:text-white"
-                              title="Editar usuário"
+                              title={t('adminUsers.editUser')}
                               onClick={() => openEdit(user)}
                             >
                               <Pencil size={16} />
                             </button>
                             <button
                               className="fc-icon-btn bg-mist text-ink/70 hover:bg-mist-line"
-                              title="Resetar senha"
+                              title={t('adminUsers.resetPassword')}
                               onClick={() => {
                                 setResetUser(user);
                                 setNewPassword('');
@@ -340,7 +342,7 @@ const AdminUsers: React.FC = () => {
                                   ? 'bg-expense-soft text-expense hover:bg-expense hover:text-white'
                                   : 'bg-income-soft text-income hover:bg-income hover:text-white'
                               }`}
-                              title={user.isActive ? 'Desabilitar usuário' : 'Reativar usuário'}
+                              title={user.isActive ? t('adminUsers.disableUser') : t('adminUsers.enableUser')}
                               onClick={() => void toggleActive(user)}
                               disabled={saving || user.id === currentUser?.id}
                             >
@@ -361,11 +363,11 @@ const AdminUsers: React.FC = () => {
               <div key={user.id} className="fc-card p-4">
                 <div className="mb-2 flex items-start justify-between gap-3">
                   <div>
-                    <p className="font-medium text-ink">{user.name || 'Sem nome'}</p>
+                    <p className="font-medium text-ink">{user.name || t('common.noName')}</p>
                     <p className="text-sm text-ink/55">{user.email}</p>
                   </div>
                   <span className={user.isActive ? 'fc-badge-success' : 'fc-badge-danger'}>
-                    {user.isActive ? 'Ativo' : 'Desabilitado'}
+                    {user.isActive ? t('adminUsers.active') : t('adminUsers.disabled')}
                   </span>
                 </div>
                 <div className="mb-3 flex flex-wrap gap-2">
@@ -378,13 +380,13 @@ const AdminUsers: React.FC = () => {
                           : 'fc-badge-warn'
                     }
                   >
-                    {roleLabel(user.role)}
+                    {roleLabel(user.role, t)}
                   </span>
-                  <span className="text-xs text-ink/45">Desde {formatDate(user.createdAt)}</span>
+                  <span className="text-xs text-ink/45">{t('adminUsers.since', { date: formatDate(user.createdAt, dateLocale) })}</span>
                 </div>
                 <div className="flex gap-2">
                   <button className="fc-btn-secondary !px-3 !py-1.5 text-xs" onClick={() => openEdit(user)}>
-                    <Pencil size={14} /> Editar
+                    <Pencil size={14} /> {t('common.edit')}
                   </button>
                   <button
                     className="fc-btn-secondary !px-3 !py-1.5 text-xs"
@@ -394,7 +396,7 @@ const AdminUsers: React.FC = () => {
                       setConfirmPassword('');
                     }}
                   >
-                    <KeyRound size={14} /> Senha
+                    <KeyRound size={14} /> {t('adminUsers.passwordShort')}
                   </button>
                   <button
                     className="fc-btn-secondary !px-3 !py-1.5 text-xs"
@@ -402,7 +404,7 @@ const AdminUsers: React.FC = () => {
                     disabled={saving || user.id === currentUser?.id}
                   >
                     {user.isActive ? <UserX size={14} /> : <Check size={14} />}
-                    {user.isActive ? 'Desabilitar' : 'Reativar'}
+                    {user.isActive ? t('adminUsers.disable') : t('adminUsers.enable')}
                   </button>
                 </div>
               </div>
@@ -417,15 +419,15 @@ const AdminUsers: React.FC = () => {
             <div className="fc-card w-full max-w-md p-5 shadow-lift sm:p-6">
               <div className="mb-4 flex items-start justify-between gap-3">
                 <div>
-                  <h3 className="font-display text-lg font-semibold text-ink">Novo usuário</h3>
+                  <h3 className="font-display text-lg font-semibold text-ink">{t('adminUsers.createTitle')}</h3>
                   <p className="mt-1 text-sm text-ink/55">
-                    Crie uma conta com nome, e-mail e senha iniciais
+                    {t('adminUsers.createSubtitle')}
                   </p>
                 </div>
                 <button
                   className="fc-icon-btn"
                   onClick={() => setIsCreating(false)}
-                  aria-label="Fechar"
+                  aria-label={t('common.close')}
                 >
                   <X size={18} />
                 </button>
@@ -433,7 +435,7 @@ const AdminUsers: React.FC = () => {
 
               <div className="space-y-3">
                 <div>
-                  <label className="fc-label">Nome completo*</label>
+                  <label className="fc-label">{t('common.fullNameRequired')}</label>
                   <input
                     className="fc-input"
                     value={createForm.name}
@@ -441,7 +443,7 @@ const AdminUsers: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="fc-label">E-mail*</label>
+                  <label className="fc-label">{t('common.emailRequired')}</label>
                   <input
                     type="email"
                     className="fc-input"
@@ -450,7 +452,7 @@ const AdminUsers: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="fc-label">Senha*</label>
+                  <label className="fc-label">{t('common.passwordRequired')}</label>
                   <input
                     type="password"
                     className="fc-input"
@@ -460,7 +462,7 @@ const AdminUsers: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="fc-label">Confirmar senha*</label>
+                  <label className="fc-label">{t('common.confirmPasswordRequired')}</label>
                   <input
                     type="password"
                     className="fc-input"
@@ -472,7 +474,7 @@ const AdminUsers: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="fc-label">Perfil</label>
+                  <label className="fc-label">{t('common.profile')}</label>
                   <select
                     className="fc-input"
                     value={createForm.role}
@@ -480,15 +482,15 @@ const AdminUsers: React.FC = () => {
                       setCreateForm((f) => ({ ...f, role: e.target.value as AppRole }))
                     }
                   >
-                    <option value="user">Usuário</option>
-                    <option value="user_ai">Usuário + IA</option>
-                    <option value="admin">Admin</option>
+                    <option value="user">{t('roles.user')}</option>
+                    <option value="user_ai">{t('roles.user_ai')}</option>
+                    <option value="admin">{t('roles.admin')}</option>
                   </select>
                 </div>
                 <ToggleSwitch
                   checked={createForm.isActive}
                   onChange={(checked) => setCreateForm((f) => ({ ...f, isActive: checked }))}
-                  label="Conta ativa"
+                  label={t('adminUsers.accountActive')}
                   className="w-fit"
                 />
               </div>
@@ -499,11 +501,11 @@ const AdminUsers: React.FC = () => {
                   onClick={() => setIsCreating(false)}
                   disabled={saving}
                 >
-                  Cancelar
+                  {t('common.cancel')}
                 </button>
                 <button className="fc-btn-primary" onClick={() => void saveCreate()} disabled={saving}>
                   <UserPlus size={16} />
-                  {saving ? 'Criando…' : 'Criar usuário'}
+                  {saving ? t('common.creating') : t('adminUsers.createUser')}
                 </button>
               </div>
             </div>
@@ -517,17 +519,17 @@ const AdminUsers: React.FC = () => {
             <div className="fc-card w-full max-w-md p-5 shadow-lift sm:p-6">
               <div className="mb-4 flex items-start justify-between gap-3">
                 <div>
-                  <h3 className="font-display text-lg font-semibold text-ink">Editar usuário</h3>
+                  <h3 className="font-display text-lg font-semibold text-ink">{t('adminUsers.editTitle')}</h3>
                   <p className="mt-1 text-sm text-ink/55">{editingUser.email}</p>
                 </div>
-                <button className="fc-icon-btn" onClick={() => setEditingUser(null)} aria-label="Fechar">
+                <button className="fc-icon-btn" onClick={() => setEditingUser(null)} aria-label={t('common.close')}>
                   <X size={18} />
                 </button>
               </div>
 
               <div className="space-y-3">
                 <div>
-                  <label className="fc-label">Nome completo</label>
+                  <label className="fc-label">{t('common.fullName')}</label>
                   <input
                     className="fc-input"
                     value={editForm.name}
@@ -535,7 +537,7 @@ const AdminUsers: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="fc-label">E-mail</label>
+                  <label className="fc-label">{t('common.email')}</label>
                   <input
                     type="email"
                     className="fc-input"
@@ -544,7 +546,7 @@ const AdminUsers: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="fc-label">Perfil</label>
+                  <label className="fc-label">{t('common.profile')}</label>
                   <select
                     className="fc-input"
                     value={editForm.role}
@@ -553,27 +555,27 @@ const AdminUsers: React.FC = () => {
                     }
                     disabled={editingUser.id === currentUser?.id}
                   >
-                    <option value="user">Usuário</option>
-                    <option value="user_ai">Usuário + IA</option>
-                    <option value="admin">Admin</option>
+                    <option value="user">{t('roles.user')}</option>
+                    <option value="user_ai">{t('roles.user_ai')}</option>
+                    <option value="admin">{t('roles.admin')}</option>
                   </select>
                 </div>
                 <ToggleSwitch
                   checked={editForm.isActive}
                   onChange={(checked) => setEditForm((f) => ({ ...f, isActive: checked }))}
                   disabled={editingUser.id === currentUser?.id}
-                  label="Conta ativa"
+                  label={t('adminUsers.accountActive')}
                   className="w-fit"
                 />
               </div>
 
               <div className="mt-5 flex justify-end gap-3">
                 <button className="fc-btn-secondary" onClick={() => setEditingUser(null)} disabled={saving}>
-                  Cancelar
+                  {t('common.cancel')}
                 </button>
                 <button className="fc-btn-primary" onClick={() => void saveEdit()} disabled={saving}>
                   <Shield size={16} />
-                  {saving ? 'Salvando…' : 'Salvar'}
+                  {saving ? t('common.savingEllipsis') : t('common.save')}
                 </button>
               </div>
             </div>
@@ -587,7 +589,7 @@ const AdminUsers: React.FC = () => {
             <div className="fc-card w-full max-w-md p-5 shadow-lift sm:p-6">
               <div className="mb-4 flex items-start justify-between gap-3">
                 <div>
-                  <h3 className="font-display text-lg font-semibold text-ink">Resetar senha</h3>
+                  <h3 className="font-display text-lg font-semibold text-ink">{t('adminUsers.resetTitle')}</h3>
                   <p className="mt-1 text-sm text-ink/55">
                     {resetUser.name || resetUser.email}
                   </p>
@@ -595,7 +597,7 @@ const AdminUsers: React.FC = () => {
                 <button
                   className="fc-icon-btn"
                   onClick={() => setResetUser(null)}
-                  aria-label="Fechar"
+                  aria-label={t('common.close')}
                 >
                   <X size={18} />
                 </button>
@@ -603,7 +605,7 @@ const AdminUsers: React.FC = () => {
 
               <div className="space-y-3">
                 <div>
-                  <label className="fc-label">Nova senha</label>
+                  <label className="fc-label">{t('adminUsers.newPassword')}</label>
                   <input
                     type="password"
                     className="fc-input"
@@ -613,7 +615,7 @@ const AdminUsers: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="fc-label">Confirmar nova senha</label>
+                  <label className="fc-label">{t('adminUsers.confirmNewPassword')}</label>
                   <input
                     type="password"
                     className="fc-input"
@@ -626,11 +628,11 @@ const AdminUsers: React.FC = () => {
 
               <div className="mt-5 flex justify-end gap-3">
                 <button className="fc-btn-secondary" onClick={() => setResetUser(null)} disabled={saving}>
-                  Cancelar
+                  {t('common.cancel')}
                 </button>
                 <button className="fc-btn-primary" onClick={() => void savePasswordReset()} disabled={saving}>
                   <KeyRound size={16} />
-                  {saving ? 'Salvando…' : 'Resetar senha'}
+                  {saving ? t('common.savingEllipsis') : t('adminUsers.resetPassword')}
                 </button>
               </div>
             </div>

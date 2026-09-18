@@ -2,15 +2,17 @@ export const APP_ROLES = ['admin', 'user', 'user_ai'] as const;
 
 export type AppRole = (typeof APP_ROLES)[number];
 
-export function roleLabel(role: string): string {
+type TranslateFn = (key: string) => string;
+
+export function roleLabel(role: string, t: TranslateFn): string {
   switch (role) {
     case 'admin':
-      return 'Admin';
+      return t('roles.admin');
     case 'user_ai':
-      return 'Usuário + IA';
+      return t('roles.user_ai');
     case 'user':
     default:
-      return 'Usuário';
+      return t('roles.user');
   }
 }
 
