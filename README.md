@@ -6,7 +6,8 @@ Gestão financeira pessoal (React + Express + Prisma + Postgres) com agente de I
 
 - Frontend: Vite + React + Tailwind
 - Backend: Express + Prisma + PostgreSQL
-- Deploy: Docker Compose + GitHub Actions → GHCR → VPS Hostinger
+- CI: GitHub Actions → imagens no GHCR
+- Deploy: **manual** na VPS Hostinger com Docker Compose
 
 ## Desenvolvimento local
 
@@ -21,30 +22,28 @@ npm install
 npm run dev
 ```
 
-## Produção (VPS Hostinger)
+## CI (GitHub Actions)
 
-1. No servidor, crie `/opt/fincontrol` (ou outro path).
-2. Copie `docker-compose.prod.yml` e `.env.production.example` → `.env` e preencha segredos.
-3. No GitHub do repositório, configure:
+Push em `main` (ou `workflow_dispatch`) apenas **builda e publica** as imagens:
 
-### Secrets
+- `ghcr.io/rfo-dev/fincontrol-api:latest`
+- `ghcr.io/rfo-dev/fincontrol-web:latest`
 
-| Secret | Descrição |
-|--------|-----------|
-| `VPS_HOST` | IP/hostname da VPS |
-| `VPS_USER` | Usuário SSH |
-| `VPS_SSH_KEY` | Chave privada SSH |
-| `VPS_PORT` | Porta SSH (ex.: `22`) |
-| `VPS_APP_DIR` | Diretório na VPS (ex.: `/opt/fincontrol`) |
-| `GHCR_TOKEN` | PAT com `read:packages` (para pull das imagens) |
+Não há deploy automático na VPS.
 
-### Variable
+## Deploy manual na VPS
 
-| Variable | Valor |
-|----------|-------|
-| `ENABLE_VPS_DEPLOY` | `true` |
+Veja o passo a passo em [`docs/DEPLOY-VPS.md`](docs/DEPLOY-VPS.md).
 
-4. Push em `main` gera imagens em GHCR. Com `ENABLE_VPS_DEPLOY=true`, também faz deploy via SSH.
+Resumo:
+
+```bash
+cd /opt/fincontrol
+# .env preenchido + docker-compose.prod.yml
+docker login ghcr.io -u rfo-dev
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d
+```
 
 ## Meta / WhatsApp
 
